@@ -1,0 +1,47 @@
+{
+  "private": true,
+  "name": "a-o-s",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src",
+  "scripts": {
+    "test": "mocha",
+    "lint": "eslint --fix 'src/**/*.js'"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "csrf": "^3.0.6",
+    "debug": "^2.6.4",
+    "express-hbs": "^1.0.4",
+    "http-error": "0.0.6",
+    "http-errors": "^1.6.1",
+    "lodash.get": "^4.4.2",
+    "oauth2-server": "^3.0.0-b3.1",
+    "sequelize": "^3.30.4"
+  },
+  "devDependencies": {
+    "body-parser": "^1.17.1",
+    "bootstrap": "^3.3.7",
+    "eslint": "^3.19.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-node": "^4.2.2",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-react": "^6.10.3",
+    "eslint-plugin-standard": "^3.0.1",
+    "express": "^4.15.2",
+    "mocha": "^3.2.0",
+    "mongoose": "^4.9.5",
+    "mysql": "^2.13.0",
+    "supertest": "^3.0.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "standard"
+    ],
+    "rules": {
+      "camelcase": 0
+    }
+  }
+}
