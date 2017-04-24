@@ -1,80 +1,118 @@
 const {debug, toArray} = require('../../utils')
+const _get = require('lodash.get')
+const _set = require('lodash.set')
 
+/**
+* converts Date to SQL DATETIME
+* @param {Date} date
+* @return {String} SQL DATETIME
+*/
+function toDateTime (date) {
+  return date.toISOString().replace(/^([0-9-]+)T([0-9:]+)(\.\d+|)Z$/, '"$1 $2"')
+}
+
+/**
+* build SQL CALL to stored procedure
+* @param {String} fnName -
+*/
+function callBuilder (fnName, ...args) {
+  let callArgs = []
+  args.forEach((arg) => {
+    let str = 'NULL'
+    switch (toString.call(arg)) {
+      case '[object Number]':
+        str = '' + arg
+        break
+      case '[object String]':
+        arg = arg.replace(/"/g, '\\"')
+        str = `"${arg}"`
+        break
+      case '[object Date]':
+        str = toDateTime(arg)
+        break
+    }
+    callArgs.push(str)
+  })
+  const query = `CALL ${fnName}(${callArgs.join(',')});`
+  return query
+}
+
+function throwOnDbErr (err) {
+  if (_get(err, 'original.code')) {
+    throw err
+  }
+}
+
+function toJSON (data) {
+  const obj = {}
+  if (!data) return
+  Object.keys(data).forEach((k) => _set(obj, k, data[k]))
+  return obj
+}
+
+/**
+* @param {Object} db - database instance
+*/
 module.exports = function (db) {
   const {
-    Users,
-    OAuthClients,
-    OAuthAccessTokens,
     OAuthAuthorizationCodes,
-    OAuthRefreshTokens
-    // OAuthScopes
+    OAuthRefreshTokens,
+    OAuthAccessTokens
   } = db
+
+  /** wrapper for stored procedure call */
+  function storedQuery (...args) {
+    return db.sequelize.query(callBuilder(...args))
+  }
+
+  /**/
 
   function getAccessToken (bearerToken) {
     debug('getAccessToken', bearerToken)
-
-    return OAuthAccessTokens
-    .findOne({
-      where: {accessToken: bearerToken},
-      attributes: ['accessToken', ['expiresAt', 'accessTokenExpiresAt'], 'scope'],
-      include: [
-        {
-          model: Users,
-          attributes: ['id', 'username']
-        }, OAuthClients
-      ]
-    })
-    .then(function (accessToken) {
+    return storedQuery('getAccessToken', bearerToken)
+    .then((accessTokens) => {
+      if (!accessTokens && !accessTokens.length) return null
+      const accessToken = toJSON(accessTokens[0])
       debug('accessToken %j', accessToken)
-      if (!accessToken) return false
-      const token = accessToken.toJSON()
-      token.user = token.User
-      token.client = token.oauthClientId
-      token.scope = token.scope
-      return token
+      return accessToken
     })
-    .catch(function (err) {
+    .catch((err) => {
       debug.error('getAccessToken %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function getClient (clientId, clientSecret) {
     debug('getClient %s %s', clientId, clientSecret)
-    const options = {
-      where: {clientId: clientId}
-    }
-    if (clientSecret) options.where.clientSecret = clientSecret
-
-    return OAuthClients
-    .findOne(options)
-    .then(function (client) {
-      if (!client) {
-        return new Error('client not found')
-      }
-      const clientWithGrants = client.toJSON()
-      clientWithGrants.grants = toArray(clientWithGrants.grants)
-      // TODO need to create another table for redirect URIs
-      clientWithGrants.redirectUris = [clientWithGrants.redirectUri]
-      delete clientWithGrants.redirectUri
-      debug('getClient %j', clientWithGrants)
-      return clientWithGrants
-    }).catch(function (err) {
+    return storedQuery('getClient', clientId, clientSecret)
+    .then((clients) => {
+      if (!clients || !clients.length) return null
+      // merge redirectUris
+      const client = clients[0]
+      // unique array from client(s).redirectUri
+      client.redirectUris = Array.from(new Set(clients.map((client) => client.redirectUri)))
+      delete client.redirectUri
+      // grants are a comma seperated list of grants here
+      client.grants = toArray(client.grants)
+      debug('getClient %j', client)
+      return client
+    }).catch((err) => {
       debug.error('getClient %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function getUser (username, password) {
-    return Users
-    .findOne({
-      where: {username: username},
-      attributes: ['id', 'username', 'password', 'scope']
-    })
-    .then(function (user) {
+    return storedQuery('getUser', username)
+    .then((users) => {
+      if (!users || !users.length) return null
+      const user = users[0]
       debug('user %j', user)
-      return user.password === password ? user.toJSON() : false
+      return user.password === password ? user : null
     })
-    .catch(function (err) {
+    .catch((err) => {
       debug.error('getUser %j', err)
+      throwOnDbErr(err)
     })
   }
 
@@ -84,19 +122,12 @@ module.exports = function (db) {
       where: {
         authorizationCode: code.code
       }
-    }).then(function (rCode) {
-    // if(rCode) rCode.destroy();
-    /***
-     * As per the discussion we need set older date
-     * revokeToken will expected return a boolean in future version
-     * https://github.com/oauthjs/node-oauth2-server/pull/274
-     * https://github.com/oauthjs/node-oauth2-server/issues/290
-     */
-      const expiredCode = code
-      expiredCode.expiresAt = new Date(0)
-      return expiredCode
-    }).catch(function (err) {
-      debug.error('getUser %j', err)
+    }).then((authCode) => {
+      if (authCode) authCode.destroy()
+      return null
+    }).catch((err) => {
+      debug.error('revokeAuthorizationCode %j', err)
+      throwOnDbErr(err)
     })
   }
 
@@ -106,145 +137,93 @@ module.exports = function (db) {
       where: {
         refreshToken: token.refreshToken
       }
-    }).then(function (refreshToken) {
+    }).then((refreshToken) => {
       if (refreshToken) refreshToken.destroy()
-    /***
-     * As per the discussion we need set older date
-     * revokeToken will expected return a boolean in future version
-     * https://github.com/oauthjs/node-oauth2-server/pull/274
-     * https://github.com/oauthjs/node-oauth2-server/issues/290
-     */
-      const expiredToken = token
-      expiredToken.refreshTokenExpiresAt = new Date(0)
-      return expiredToken
-    }).catch(function (err) {
+      return null
+    }).catch((err) => {
       debug.error('revokeToken %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function saveToken (token, client, user) {
     debug('saveToken %j %j %j', token, client, user)
     return Promise.all([
-      OAuthAccessTokens.create({
-        accessToken: token.accessToken,
-        expiresAt: token.accessTokenExpiresAt,
-        oauthClientId: client.id,
-        userId: user.id,
-        scope: token.scope
-      }),
+      storedQuery('saveAccessToken', token.accessToken, token.accessTokenExpiresAt, token.scope, client.id, user.id),
       token.refreshToken
-        ? OAuthRefreshTokens.create({ // no refresh token for client_credentials
-          refreshToken: token.refreshToken,
-          expiresAt: token.refreshTokenExpiresAt,
-          oauthClientId: client.id,
-          userId: user.id,
-          scope: token.scope
-        })
+        ? storedQuery('saveRefreshToken', token.refreshToken, token.refreshTokenExpiresAt, token.scope, client.id, user.id)
         : []
     ])
-    .then(function (resultsArray) {
+    .then(() => {
       // expected to return client and user, but not returning
       return Object.assign({
         client: client,
-        user: user,
-        accessToken: token.accessToken,
-        refreshToken: token.refreshToken
+        user: user
       }, token)
     })
-    .catch(function (err) {
-      debug.error('revokeToken %j', err)
+    .catch((err) => {
+      debug.error('saveToken %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function getAuthorizationCode (code) {
     debug('getAuthorizationCode %s', code)
-    return OAuthAuthorizationCodes
-    .findOne({
-      attributes: ['oauthClientId', 'expiresAt', 'userId', 'scope'],
-      where: {authorizationCode: code},
-      include: [Users, OAuthClients]
-    })
-    .then(function (authCodeModel) {
-      if (!authCodeModel || !authCodeModel.OAuthClient || !authCodeModel.User) return false
-      const client = authCodeModel.OAuthClient.toJSON()
-      const user = authCodeModel.User.toJSON()
-      return {
-        code: code,
-        client: client,
-        expiresAt: authCodeModel.expiresAt,
-        redirectUri: client.redirectUri,
-        user: user,
-        scope: authCodeModel.scope
-      }
-    }).catch(function (err) {
+    return storedQuery('getAuthorizationCode', code)
+    .then((authCodes) => {
+      if (!authCodes && !authCodes.length) return null
+      const authCode = toJSON(authCodes[0])
+      debug('getAuthorizationCode %j', authCode)
+      return authCode
+    }).catch((err) => {
       debug.error('getAuthorizationCode %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function saveAuthorizationCode (code, client, user) {
     debug('saveAuthorizationCode %s %j %j', code, client, user)
-    return OAuthAuthorizationCodes
-    .create({
-      authorizationCode: code.authorizationCode,
-      expiresAt: code.expiresAt,
-      userId: user.id,
-      oauthClientId: client.id,
-      scope: code.scope
-    })
-    .then(function () {
+    return storedQuery('saveAuthorizationCode',
+      code.authorizationCode, code.expiresAt, code.redirectUri, code.scope,
+      client.id, user.id
+    )
+    .then(() => {
       code.code = code.authorizationCode
       return code
-    }).catch(function (err) {
+    }).catch((err) => {
       debug.error('saveAuthorizationCode %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function getUserFromClient (client) {
     debug('getUserFromClient %j', client)
-    const options = {
-      where: {clientId: client.clientId},
-      include: [Users],
-      attributes: ['id', 'clientId', 'redirectUri']
-    }
-    if (client.clientSecret) options.where.clientSecret = client.clientSecret
-
-    return OAuthClients
-    .findOne(options)
-    .then(function (client) {
+    return storedQuery('getUserFromClient', client.clientId, client.clientSecret)
+    .then((clients) => {
+      if (!clients || !clients.length) return null
+      const client = toJSON(clients[0])
       debug(client)
-      if (!client || !client.User) return false
-      return client.User.toJSON()
-    }).catch(function (err) {
+      return client
+    }).catch((err) => {
       debug.error('getUserFromClient %j', err)
+      throwOnDbErr(err)
     })
   }
 
   function getRefreshToken (refreshToken) {
     debug('getRefreshToken %s', refreshToken)
-    if (!refreshToken || refreshToken === 'undefined') return false
+    if (!refreshToken || refreshToken === 'undefined') return null
 
-    return OAuthRefreshTokens
-    .findOne({
-      attributes: ['oauthClientId', 'userId', 'expiresAt'],
-      where: {refreshToken: refreshToken},
-      include: [OAuthClients, Users]
+    return storedQuery('getRefreshToken', refreshToken)
+    .then((refreshTokens) => {
+      if (!refreshTokens && !refreshTokens.length) return null
+      const refreshToken = toJSON(refreshTokens[0])
+      debug('refreshToken %j', refreshToken)
+      return refreshToken
     })
-    .then(function (savedRT) {
-      debug('savedRefreshToken %j', savedRT)
-      const tokenTemp = {
-        user: savedRT && savedRT.User
-          ? savedRT.User.toJSON()
-          : {},
-        client: savedRT && savedRT.OAuthClient
-          ? savedRT.OAuthClient.toJSON()
-          : {},
-        refreshTokenExpiresAt: savedRT ? new Date(savedRT.expiresAt) : null,
-        refreshToken: refreshToken,
-        scope: savedRT.scope
-      }
-      return tokenTemp
-    }).catch(function (err) {
+    .catch((err) => {
       debug.error('getRefreshToken %j', err)
+      throwOnDbErr(err)
     })
   }
 
@@ -259,17 +238,40 @@ module.exports = function (db) {
   }
   */
 
-  function findClient (query, attributes) {
-    return OAuthClients.findOne({
-      where: query,
-      attributes: attributes || []
+  /** === non oazth2-server methods === */
+
+  /**
+  * destroy all tokens assigned to a user (his bearerToken) e.g. on logout from the server
+  * @param {String} bearerToken
+  */
+  function revokeAllTokens (bearerToken) {
+    debug('revokeAllTokens bearerToken %s', bearerToken)
+    return getAccessToken(bearerToken) // find user by bearerToken
+    .then((accessToken) => {
+      const userId = _get(accessToken, 'user.id')
+      if (!accessToken || !userId) {
+        throw new Error('no accessToken or userId found')
+      }
+      debug('revokeAllTokens accessToken found %j', accessToken)
+      return Promise.all([
+        OAuthAuthorizationCodes.destroy({
+          where: {userId: userId}
+        }),
+        OAuthRefreshTokens.destroy({
+          where: {userId: userId}
+        }),
+        OAuthAccessTokens.destroy({
+          where: {userId: userId}
+        })
+      ])
+    })
+    .catch((err) => {
+      debug.error('revokeAllTokens %j', err)
+      throwOnDbErr(err)
     })
   }
 
   return {
-    // generateOAuthAccessToken, // optional - used for jwt
-    // generateAuthorizationCode, // optional
-    // generateOAuthRefreshToken, // optional
     getAccessToken,
     getAuthorizationCode,
     getClient,
@@ -281,7 +283,7 @@ module.exports = function (db) {
     saveToken,
     saveAuthorizationCode,
     // validateScope,
-    // verifyScope
-    findClient
+    // verifyScope,
+    revokeAllTokens
   }
 }

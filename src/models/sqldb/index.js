@@ -13,19 +13,13 @@ exports.connect = function connect (config) {
 
   const db = {
     sequelize,
-    OAuthAccessTokens: sequelize.import('./OAuthAccessTokens'),
-    OAuthAuthorizationCodes: sequelize.import('./OAuthAuthorizationCodes'),
-    OAuthClients: sequelize.import('./OAuthClients'),
-    OAuthRefreshTokens: sequelize.import('./OAuthRefreshTokens'),
-    OAuthScopes: sequelize.import('./OAuthScopes'),
-    Users: sequelize.import('./Users')
+    OAuthAccessTokens: sequelize.import('./oauth_access_tokens'),
+    OAuthAuthorizationCodes: sequelize.import('./oauth_authorization_codes'),
+    OAuthClients: sequelize.import('./oauth_clients'),
+    OAuthRefreshTokens: sequelize.import('./oauth_refresh_tokens'),
+    OAuthScopes: sequelize.import('./oauth_scopes'),
+    Users: sequelize.import('./users')
   }
-
-  Object.keys(db).forEach(function (modelName) {
-    if ('associate' in db[modelName]) {
-      db[modelName].associate(db)
-    }
-  })
 
   const model = require('./model')(db)
   return {db, model}

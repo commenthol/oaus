@@ -3,10 +3,10 @@ const cookie = require('cookie')
 module.exports = {
   serialize: cookie.serialize,
   parse: cookie.parse,
-  setCookie
+  set: set
 }
 
-function setCookie (res, name, value, options) {
+function set (res, name, value, options) {
   const data = cookie.serialize(name, value, options)
 
   const prev = res.getHeader('set-cookie') || []

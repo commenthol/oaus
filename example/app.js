@@ -7,10 +7,15 @@ console.log(oauth2router)
 
 const config = {
   database: {
-    connector: 'mongodb',
-    url: 'mongodb://localhost/oauth2'
+    // connector: 'mongodb',
+    // url: 'mongodb://localhost/oauth2'
+    connector: 'mysql',
+    url: 'mysql://dev:dev@localhost/oauth2'
   },
-  csrfSecret: 'CHANGE-THIS-IN-ANY-CASE!!!'
+  login: {
+    client: {clientId: 'login', clientSecret: 'loginSecret'}
+  },
+  csrfTokenSecret: 'CHANGE-THIS-IN-ANY-CASE!!!'
 }
 
 const app = express()

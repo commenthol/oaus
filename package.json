@@ -11,12 +11,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "cookie": "^0.3.1",
     "csrf": "^3.0.6",
     "debug": "^2.6.4",
     "express-hbs": "^1.0.4",
-    "http-error": "0.0.6",
     "http-errors": "^1.6.1",
     "lodash.get": "^4.4.2",
+    "lodash.set": "^4.3.2",
     "oauth2-server": "^3.0.0-b3.1",
     "sequelize": "^3.30.4"
   },
@@ -41,7 +42,7 @@
       "standard"
     ],
     "rules": {
-      "camelcase": 0
+      "camelcase": 1
     }
   }
 }

@@ -4,6 +4,8 @@ tmp/
 *.log
 *.tgz
 
-# temp development files
+# tmp dev files
 *.0
+*.bak.js
 q.sql
+archive/

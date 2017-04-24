@@ -171,9 +171,10 @@ module.exports = function (db) {
     .create({
       authorizationCode: code.authorizationCode,
       expiresAt: code.expiresAt,
+      redirectUri: code.redirectUri,
+      scope: code.scope,
       userId: user._id,
-      oauthClientId: client._id,
-      scope: code.scope
+      oauthClientId: client._id
     })
     .then(function () {
       code.code = code.authorizationCode

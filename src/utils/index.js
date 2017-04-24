@@ -27,6 +27,11 @@ function logRequest (req, res, next) {
   next()
 }
 
+function basicAuthHeader (client) {
+  const {clientId, clientSecret} = client
+  return 'Basic ' + (Buffer.from(`${clientId}:${clientSecret || ''}`)).toString('base64')
+}
+
 module.exports = {
   csrfToken,
   cookie,
@@ -34,5 +39,6 @@ module.exports = {
   fromArray,
   toArray,
   objToArray,
+  basicAuthHeader,
   logRequest
 }
