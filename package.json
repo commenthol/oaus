@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "a-o-s",
-  "version": "1.0.0",
+  "version": "1.0.0-0",
   "description": "",
   "main": "src",
   "scripts": {
