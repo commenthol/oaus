@@ -186,6 +186,7 @@ describe('#models', function () {
       it('should get access token', function () {
         return model.getAccessToken(token.accessToken)
         .then((res) => {
+          // console.log(res)
           assert.deepEqual(objectKeysType(res), { id: 'Number',
             accessToken: 'String',
             accessTokenExpiresAt: 'Date',

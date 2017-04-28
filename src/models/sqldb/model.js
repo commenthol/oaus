@@ -1,54 +1,6 @@
 const {debug, toArray} = require('../../utils')
 const _get = require('lodash.get')
-const _set = require('lodash.set')
-
-/**
-* converts Date to SQL DATETIME
-* @param {Date} date
-* @return {String} SQL DATETIME
-*/
-function toDateTime (date) {
-  return date.toISOString().replace(/^([0-9-]+)T([0-9:]+)(\.\d+|)Z$/, '"$1 $2"')
-}
-
-/**
-* build SQL CALL to stored procedure
-* @param {String} fnName -
-*/
-function callBuilder (fnName, ...args) {
-  let callArgs = []
-  args.forEach((arg) => {
-    let str = 'NULL'
-    switch (toString.call(arg)) {
-      case '[object Number]':
-        str = '' + arg
-        break
-      case '[object String]':
-        arg = arg.replace(/"/g, '\\"')
-        str = `"${arg}"`
-        break
-      case '[object Date]':
-        str = toDateTime(arg)
-        break
-    }
-    callArgs.push(str)
-  })
-  const query = `CALL ${fnName}(${callArgs.join(',')});`
-  return query
-}
-
-function throwOnDbErr (err) {
-  if (_get(err, 'original.code')) {
-    throw err
-  }
-}
-
-function toJSON (data) {
-  const obj = {}
-  if (!data) return
-  Object.keys(data).forEach((k) => _set(obj, k, data[k]))
-  return obj
-}
+const {callBuilder, toJSON, throwOnDbErr} = require('./storedProc')
 
 /**
 * @param {Object} db - database instance
@@ -65,7 +17,7 @@ module.exports = function (db) {
     return db.sequelize.query(callBuilder(...args))
   }
 
-  /**/
+  /* === models required by oauth2-server === */
 
   function getAccessToken (bearerToken) {
     debug('getAccessToken', bearerToken)
@@ -238,7 +190,7 @@ module.exports = function (db) {
   }
   */
 
-  /** === non oazth2-server methods === */
+  /** === non oauth2-server methods === */
 
   /**
   * destroy all tokens assigned to a user (his bearerToken) e.g. on logout from the server

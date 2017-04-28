@@ -19,7 +19,8 @@
     "lodash.get": "^4.4.2",
     "lodash.set": "^4.3.2",
     "oauth2-server": "^3.0.0-b3.1",
-    "sequelize": "^3.30.4"
+    "sequelize": "^3.30.4",
+    "sqlstring": "^2.2.0"
   },
   "devDependencies": {
     "body-parser": "^1.17.1",

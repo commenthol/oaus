@@ -64,7 +64,7 @@ function token (req, res) {
 
 function authorize (req, res) {
   const {model} = req._oauth2
-  const clientId = _get(req, 'query.client_id'),
+  const clientId = _get(req, 'query.client_id')
   const redirectUri = _get(req, 'query.redirect_uri')
 
   debug('authorize', query)
@@ -73,9 +73,7 @@ function authorize (req, res) {
     debug.error('authorize', client)
     const isValidRedirect = (client && client.redirectUris.indexOf(redirectUri) !== -1)
     if (!client) return res.status(404).json({ error: 'Invalid Client' })
-
-    
-
+// TODO
     return res.json(data)
   }).catch((err) => {
     debug.error('authorize %j', err)
