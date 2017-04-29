@@ -67,7 +67,7 @@ describe('#models', function () {
             'userId' ])
           assert.strictEqual(client.name, 'demoName')
           assert.strictEqual(client.clientId, 'demo')
-          assert.strictEqual(client.clientSecret, 'demoSecret')
+          assert.strictEqual(client.clientSecret, 'demosecret')
           assert.deepEqual(client.grants, ['authorization_code', 'password', 'refresh_token', 'client_credentials'])
           assert.deepEqual(client.redirectUris, ['http://localhost:3000/cb', 'http://localhost:3000/cb1'])
         })
@@ -191,7 +191,7 @@ describe('#models', function () {
             accessToken: 'String',
             accessTokenExpiresAt: 'Date',
             scope: 'Null',
-            user: { id: 'Number', username: 'String' },
+            user: { id: 'Number', username: 'String', scope: 'Null' },
             client: { id: 'Number', clientId: 'String', scope: 'Null' } })
           assert.equal(res.accessToken, token.accessToken)
           token.accessTokenExpiresAt.setMilliseconds(0)
@@ -202,7 +202,7 @@ describe('#models', function () {
       it('should not get access token', function () {
         return model.getAccessToken('token.accessToken')
         .then((res) => {
-          assert.deepEqual(objectKeysType(res), 'Undefined')
+          assert.deepEqual(objectKeysType(res), 'Null')
         })
       })
     })
@@ -233,7 +233,7 @@ describe('#models', function () {
             refreshToken: 'String',
             refreshTokenExpiresAt: 'Date',
             scope: 'Null',
-            user: { id: 'Number', username: 'String' },
+            user: { id: 'Number', username: 'String', scope: 'Null' },
             client: { id: 'Number', clientId: 'String', scope: 'Null' } })
           assert.equal(res.refreshToken, token.refreshToken)
           token.refreshTokenExpiresAt.setMilliseconds(0)
@@ -244,7 +244,7 @@ describe('#models', function () {
       it('should not get refresh token', function () {
         return model.getRefreshToken('token.refreshToken')
         .then((res) => {
-          assert.deepEqual(objectKeysType(res), 'Undefined')
+          assert.deepEqual(objectKeysType(res), 'Null')
         })
       })
     })
@@ -308,7 +308,6 @@ describe('#models', function () {
             user: { id: 'Number', username: 'String', scope: 'Null' },
             client:
             { id: 'Number',
-              name: 'String',
               clientId: 'String',
               scope: 'Null'
             }
@@ -318,7 +317,14 @@ describe('#models', function () {
           assert.equal(res.expiresAt.toISOString(), code.expiresAt.toISOString())
           assert.equal(res.redirectUri, code.redirectUri)
           assert.deepEqual(res.user, { id: 2, username: 'user@user', scope: null })
-          assert.deepEqual(res.client, { id: 1, name: 'demoName', clientId: 'demo', scope: null })
+          assert.deepEqual(res.client, { id: 1, clientId: 'demo', scope: null })
+        })
+      })
+
+      it('should not get auth code', function () {
+        return model.getAuthorizationCode('code.authorizationCode')
+        .then((res) => {
+          assert.equal(res, null)
         })
       })
     })
@@ -329,33 +335,26 @@ describe('#models', function () {
         .then((res) => {
           assert.deepEqual(objectKeysType(res), {
             id: 'Number',
-            clientId: 'String',
-            user: {
-              id: 'Number',
-              username: 'String',
-              password: 'String',
-              scope: 'Null'
-            }
+            username: 'String',
+            scope: 'Null',
+            createdAt: 'Date',
+            updatedAt: 'Date'
           })
-          assert.strictEqual(res.user.username, 'admin@admin')
-          assert.strictEqual(res.user.password, 'admin')
+          assert.strictEqual(res.username, 'admin@admin')
         })
       })
+
       it('should get user from client without secret', function () {
         return model.getUserFromClient(clients.client)
         .then((res) => {
-          assert.deepEqual(objectKeysType(res), {
-            id: 'Number',
-            clientId: 'String',
-            user: {
-              id: 'Number',
-              username: 'String',
-              password: 'String',
-              scope: 'Null'
-            }
-          })
-          assert.strictEqual(res.user.username, 'admin@admin')
-          assert.strictEqual(res.user.password, 'admin')
+          assert.strictEqual(res.username, 'admin@admin')
+        })
+      })
+
+      it('should not get user from not existing client', function () {
+        return model.getUserFromClient('clients.client')
+        .then((res) => {
+          assert.strictEqual(res, null)
         })
       })
     })
@@ -383,7 +382,7 @@ describe('#models', function () {
           return model.getRefreshToken(token.refreshToken)
         })
         .then((res) => {
-          assert.strictEqual(res, undefined)
+          assert.strictEqual(res, null)
         })
       })
     })
@@ -410,7 +409,7 @@ describe('#models', function () {
           return model.getAuthorizationCode(code.authorizationCode)
         })
         .then((res) => {
-          assert.strictEqual(res, undefined)
+          assert.strictEqual(res, null)
         })
       })
     })

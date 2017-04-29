@@ -1,6 +1,7 @@
 /**
 * Helper function for SQL stored procedures
 */
+
 const _get = require('lodash.get')
 const _set = require('lodash.set')
 const sqlString = require('sqlstring')
