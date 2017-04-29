@@ -18,8 +18,8 @@ const users = {
   user: {username: 'user@user', password: 'user'}
 }
 const clients = {
-  demo: {name: 'demoName', clientId: 'demo', clientSecret: 'demoSecret'},
-  login: {name: 'loginName', clientId: 'login', clientSecret: 'loginSecret'},
+  demo: {name: 'demoName', clientId: 'demo', clientSecret: 'demosecret'},
+  login: {name: 'loginName', clientId: 'login', clientSecret: 'loginsecret'},
   client: {name: 'clientName', clientId: 'client', clientSecret: undefined}
 }
 
@@ -87,6 +87,13 @@ describe('#models', function () {
       it('should run on invalid clientId', function () {
         const {clientId, clientSecret} = clients.client
         return model.getClient(clientId + '###', clientSecret)
+        .then((client) => {
+          assert.strictEqual(client, null)
+        })
+      })
+      it('should not return client if secret is wrong', function () {
+        const {clientId} = clients.demo
+        return model.getClient(clientId, 'demoSecret')
         .then((client) => {
           assert.strictEqual(client, null)
         })
@@ -202,7 +209,7 @@ describe('#models', function () {
       it('should not get access token', function () {
         return model.getAccessToken('token.accessToken')
         .then((res) => {
-          assert.deepEqual(objectKeysType(res), 'Null')
+          assert.equal(res, null)
         })
       })
     })
@@ -244,7 +251,7 @@ describe('#models', function () {
       it('should not get refresh token', function () {
         return model.getRefreshToken('token.refreshToken')
         .then((res) => {
-          assert.deepEqual(objectKeysType(res), 'Null')
+          assert.equal(res, null)
         })
       })
     })
@@ -382,7 +389,7 @@ describe('#models', function () {
           return model.getRefreshToken(token.refreshToken)
         })
         .then((res) => {
-          assert.strictEqual(res, null)
+          assert.equal(res, null)
         })
       })
     })
@@ -409,7 +416,7 @@ describe('#models', function () {
           return model.getAuthorizationCode(code.authorizationCode)
         })
         .then((res) => {
-          assert.strictEqual(res, null)
+          assert.equal(res, null)
         })
       })
     })

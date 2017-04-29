@@ -5,7 +5,8 @@ const mongodb = {
 const mysql = {
   connector: 'mysql',
   url: 'mysql://dev:dev@localhost/oauth2',
-  logging: false
+  logging: false,
+  storedProcedures: true
 }
 
 module.exports = {

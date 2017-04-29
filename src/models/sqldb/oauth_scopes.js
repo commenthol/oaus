@@ -3,7 +3,7 @@
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_scopes', {
     id: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       primaryKey: true,
       autoIncrement: true
@@ -24,9 +24,12 @@ module.exports = function (sequelize, DataTypes) {
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
+      defaultValue: sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     }
   }, {
-    tableName: 'oauth_scopes'
+    tableName: 'oauth_scopes',
+    charset: 'utf8',
+    collate: 'utf8_unicode_ci',
+    timestamps: true
   })
 }

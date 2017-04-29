@@ -171,36 +171,6 @@ module.exports = function (db) {
     })
   }
 
-  function revokeAuthorizationCode (code) {
-    debug('revokeAuthorizationCode', code)
-    return OAuthAuthorizationCodes.findOne({
-      where: {
-        authorizationCode: code.code
-      }
-    }).then((authCode) => {
-      if (authCode) authCode.destroy()
-      return null
-    }).catch((err) => {
-      debug.error('revokeAuthorizationCode %j', err)
-      throwOnDbErr(err)
-    })
-  }
-
-  function revokeToken (token) {
-    debug('revokeToken %j', token)
-    return OAuthRefreshTokens.findOne({
-      where: {
-        refreshToken: token.refreshToken
-      }
-    }).then((refreshToken) => {
-      if (refreshToken) refreshToken.destroy()
-      return null
-    }).catch((err) => {
-      debug.error('revokeToken %j', err)
-      throwOnDbErr(err)
-    })
-  }
-
   function saveToken (token, client, user) {
     debug('saveToken %j %j %j', token, client, user)
     return Promise.all([
@@ -251,6 +221,36 @@ module.exports = function (db) {
     })
     .catch((err) => {
       debug.error('saveAuthorizationCode %j', err)
+      throwOnDbErr(err)
+    })
+  }
+
+  function revokeAuthorizationCode (code) {
+    debug('revokeAuthorizationCode', code)
+    return OAuthAuthorizationCodes.findOne({
+      where: {
+        authorizationCode: code.code
+      }
+    }).then((authCode) => {
+      if (authCode) authCode.destroy()
+      return null
+    }).catch((err) => {
+      debug.error('revokeAuthorizationCode %j', err)
+      throwOnDbErr(err)
+    })
+  }
+
+  function revokeToken (token) {
+    debug('revokeToken %j', token)
+    return OAuthRefreshTokens.findOne({
+      where: {
+        refreshToken: token.refreshToken
+      }
+    }).then((refreshToken) => {
+      if (refreshToken) refreshToken.destroy()
+      return null
+    }).catch((err) => {
+      debug.error('revokeToken %j', err)
       throwOnDbErr(err)
     })
   }

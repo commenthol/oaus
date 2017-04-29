@@ -3,7 +3,7 @@
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_clients', {
     id: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       primaryKey: true,
       autoIncrement: true
@@ -13,11 +13,12 @@ module.exports = function (sequelize, DataTypes) {
       allowNull: true
     },
     clientId: {
-      type: DataTypes.STRING(80),
-      allowNull: true
+      type: DataTypes.STRING(80) + ' COLLATE utf8_bin',
+      allowNull: true,
+      unique: true
     },
     clientSecret: {
-      type: DataTypes.STRING(80),
+      type: DataTypes.STRING(80) + ' COLLATE utf8_bin',
       allowNull: true
     },
     grants: {
@@ -25,11 +26,11 @@ module.exports = function (sequelize, DataTypes) {
       allowNull: true
     },
     refreshTokenLifetime: {
-      type: DataTypes.INTEGER(10),
+      type: DataTypes.INTEGER(10).UNSIGNED,
       allowNull: true
     },
     accessTokenLifetime: {
-      type: DataTypes.INTEGER(10),
+      type: DataTypes.INTEGER(10).UNSIGNED,
       allowNull: true
     },
     scope: {
@@ -37,12 +38,12 @@ module.exports = function (sequelize, DataTypes) {
       allowNull: true
     },
     userId: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true
+      // references: {
+      //   model: 'oauth_users',
+      //   key: 'id'
+      // }
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -52,9 +53,12 @@ module.exports = function (sequelize, DataTypes) {
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
+      defaultValue: sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     }
   }, {
-    tableName: 'oauth_clients'
+    tableName: 'oauth_clients',
+    charset: 'utf8',
+    collate: 'utf8_unicode_ci',
+    timestamps: true
   })
 }

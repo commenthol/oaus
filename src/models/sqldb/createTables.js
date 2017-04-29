@@ -7,7 +7,7 @@ function createTables (config) {
   const {db} = model.connect(config)
 
   Object.keys(db.sequelize.models).forEach((m) => {
-    db.sequelize.models[m].sync()
+    db.sequelize.models[m].sync({force: false})
   })
 }
 
@@ -22,5 +22,5 @@ function main () {
     logging: true
   }
   createTables(config)
-  console.log('Please stop process with ^C if all tables where created')
+  console.log('IMPORTANT: You might run this script ~3 times as tables have associations.')
 }

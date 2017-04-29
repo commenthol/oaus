@@ -1,12 +1,11 @@
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens--create`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens__create`(
 	IN `accessToken` VARCHAR(255),
 	IN `expiresAt` DATETIME,
 	IN `scope` VARCHAR(255),
 	IN `oauthClientId` BIGINT,
 	IN `userId` BIGINT
-
 )
     MODIFIES SQL DATA
     DETERMINISTIC
@@ -18,7 +17,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens--read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens__read`(
 	IN `accessToken` VARCHAR(255)
 )
     READS SQL DATA
@@ -31,11 +30,12 @@ BEGIN
 	  `accessTokens`.`scope`,
 	  `user`.`id` AS `user.id`,
 	  `user`.`username` AS `user.username`,
+	  `user`.`scope` AS `user.scope`,
 	  `client`.`id` AS `client.id`,
 	  `client`.`clientId` AS `client.clientId`,
 	  `client`.`scope` AS `client.scope`
 	FROM `oauth_access_tokens` AS `accessTokens`
-	LEFT OUTER JOIN `users` AS `user` ON `accessTokens`.`userId` = `user`.`id`
+	LEFT OUTER JOIN `oauth_users` AS `user` ON `accessTokens`.`userId` = `user`.`id`
 	LEFT OUTER JOIN `oauth_clients` AS `client` ON `accessTokens`.`oauthClientId` = `client`.`id`
 	WHERE `accessTokens`.`accessToken` = accessToken
 	LIMIT 1;
@@ -43,14 +43,13 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes--create`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes__create`(
 	IN `authorizationCode` VARCHAR(255),
 	IN `expiresAt` DATETIME,
 	IN `redirectUri` VARCHAR(2000),
 	IN `scope` VARCHAR(255),
 	IN `oauthClientId` BIGINT,
 	IN `userId` BIGINT
-
 )
     MODIFIES SQL DATA
     DETERMINISTIC
@@ -62,7 +61,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes--read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes__read`(
 	IN `authorizationCode` VARCHAR(255)
 )
     READS SQL DATA
@@ -78,11 +77,10 @@ BEGIN
 	`user`.`username` AS `user.username`,
 	`user`.`scope` AS `user.scope`,
 	`client`.`id` AS `client.id`,
-	`client`.`name` AS `client.name`,
 	`client`.`clientId` AS `client.clientId`,
 	`client`.`scope` AS `client.scope`
 	FROM `oauth_authorization_codes` AS `authorizationCodes`
-	LEFT OUTER JOIN `users` AS `user` ON `authorizationCodes`.`userId` = `user`.`id`
+	LEFT OUTER JOIN `oauth_users` AS `user` ON `authorizationCodes`.`userId` = `user`.`id`
 	LEFT OUTER JOIN `oauth_clients` AS `client` ON `authorizationCodes`.`oauthClientId` = `client`.`id`
 	WHERE `authorizationCodes`.`authorizationCode` = authorizationCode
 	LIMIT 1;
@@ -90,7 +88,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients--read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__read`(
 	IN `clientId` VARCHAR(80),
 	IN `clientSecret` VARCHAR(80)
 )
@@ -110,7 +108,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__users--read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__users__read`(
 	IN `clientId` VARCHAR(80),
 	IN `clientSecret` VARCHAR(80)
 )
@@ -122,10 +120,11 @@ BEGIN
 	  `clients`.`clientId`,
 	  `user`.`id` AS `user.id`,
 	  `user`.`username` AS `user.username`,
-	  `user`.`password` AS `user.password`,
-	  `user`.`scope` AS `user.scope`
+	  `user`.`scope` AS `user.scope`,
+	  `user`.`createdAt` AS `user.createdAt`,
+	  `user`.`updatedAt` AS `user.updatedAt`
 	FROM `oauth_clients` AS `clients`
-	LEFT OUTER JOIN `users` AS `user` ON `clients`.`userId` = `user`.`id`
+	LEFT OUTER JOIN `oauth_users` AS `user` ON `clients`.`userId` = `user`.`id`
 	WHERE `clients`.`clientId` = clientId  AND
 		IF(ISNULL(clientSecret),ISNULL(`clients`.`clientSecret`), `clients`.`clientSecret` = clientSecret)
 	LIMIT 1;
@@ -133,13 +132,12 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens--create`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens__create`(
 	IN `refreshToken` VARCHAR(255),
 	IN `expiresAt` DATETIME,
 	IN `scope` VARCHAR(255),
 	IN `oauthClientId` BIGINT,
 	IN `userId` BIGINT
-
 )
     MODIFIES SQL DATA
     DETERMINISTIC
@@ -151,7 +149,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens--read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens__read`(
 	IN `refreshToken` VARCHAR(255)
 )
     READS SQL DATA
@@ -164,11 +162,12 @@ BEGIN
 	  `refreshTokens`.`scope`,
 		`user`.`id` AS `user.id`,
 	  `user`.`username` AS `user.username`,
+	  `user`.`scope` AS `user.scope`,
 	  `client`.`id` AS `client.id`,
 	  `client`.`clientId` AS `client.clientId`,
 	  `client`.`scope` AS `client.scope`
 	FROM `oauth_refresh_tokens` AS `refreshTokens`
-	LEFT OUTER JOIN `users` AS `user` ON `refreshTokens`.`userId` = `user`.`id`
+	LEFT OUTER JOIN `oauth_users` AS `user` ON `refreshTokens`.`userId` = `user`.`id`
 	LEFT OUTER JOIN `oauth_clients` AS `client` ON `refreshTokens`.`oauthClientId` = `client`.`id`
 	WHERE `refreshTokens`.`refreshToken` = refreshToken
 	LIMIT 1;
@@ -176,7 +175,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_users--read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_users__read`(
 	IN `username` VARCHAR(254)
 )
     READS SQL DATA
@@ -184,8 +183,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_users--read`(
     COMMENT 'getUser(username)'
 BEGIN
 	SELECT id, username, password, scope
-	FROM users
-	WHERE users.username = username
+	FROM oauth_users
+	WHERE oauth_users.username = username
 	LIMIT 1;
 END//
 DELIMITER ;
