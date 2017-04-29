@@ -299,6 +299,7 @@ module.exports = function (db) {
     })
   }
 
+  // exports
   return {
     getAccessToken,
     getAuthorizationCode,

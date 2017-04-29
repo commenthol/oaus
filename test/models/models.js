@@ -1,6 +1,6 @@
 /* global describe, it, before */
 const assert = require('assert')
-const config = require('./support/config')
+const config = require('../support/config')
 const {
   accessToken,
   refreshToken,
@@ -8,9 +8,9 @@ const {
   getUserClient,
   objectKeysType,
   timeout
-} = require('./support/models-helper')
+} = require('./helper')
 
-const models = require('../src/models')
+const models = require('../../src/models')
 
 // definition of test constants
 const users = {

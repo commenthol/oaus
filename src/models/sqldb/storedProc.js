@@ -27,6 +27,7 @@ function callBuilder (fnName, ...args) {
     }
     return sqlString.escape(arg)
   })
+  fnName = fnName.replace(/[^A-Za-z0-9_-]/g, '')
   const query = `CALL ${fnName}(${callArgs.join(',')});`
   return query
 }

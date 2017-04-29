@@ -1,12 +1,16 @@
 /* global describe, it */
 const assert = require('assert')
-const {callBuilder, toJSON} = require('../src/models/sqldb/storedProc')
+const {callBuilder, toJSON} = require('../../src/models/sqldb/storedProc')
 
 describe('storedProc', function () {
   describe('callBuilder', function () {
     it('should build a CALL sql statement', function () {
-      const res = callBuilder('functionName', 123, 'string', new Date(800))
-      assert.strictEqual(res, "CALL functionName(123,'string','1970-01-01 00:00:00');")
+      const res = callBuilder('table_name--read', 123, 'string', new Date(800))
+      assert.strictEqual(res, "CALL table_name--read(123,'string','1970-01-01 00:00:00');")
+    })
+    it('should rename function name of a CALL sql statement', function () {
+      const res = callBuilder('table_name%&--*read', 123, 'string', new Date(800))
+      assert.strictEqual(res, "CALL table_name--read(123,'string','1970-01-01 00:00:00');")
     })
   })
 
