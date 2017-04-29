@@ -1,6 +1,6 @@
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens__create`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens--create`(
 	IN `accessToken` VARCHAR(255),
 	IN `expiresAt` DATETIME,
 	IN `scope` VARCHAR(255),
@@ -18,7 +18,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens__read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_access_tokens--read`(
 	IN `accessToken` VARCHAR(255)
 )
     READS SQL DATA
@@ -43,7 +43,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes__create`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes--create`(
 	IN `authorizationCode` VARCHAR(255),
 	IN `expiresAt` DATETIME,
 	IN `redirectUri` VARCHAR(2000),
@@ -62,7 +62,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes__read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_authorization_codes--read`(
 	IN `authorizationCode` VARCHAR(255)
 )
     READS SQL DATA
@@ -90,7 +90,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients--read`(
 	IN `clientId` VARCHAR(80),
 	IN `clientSecret` VARCHAR(80)
 )
@@ -110,7 +110,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__users__read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__users--read`(
 	IN `clientId` VARCHAR(80),
 	IN `clientSecret` VARCHAR(80)
 )
@@ -133,7 +133,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens__create`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens--create`(
 	IN `refreshToken` VARCHAR(255),
 	IN `expiresAt` DATETIME,
 	IN `scope` VARCHAR(255),
@@ -151,7 +151,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens__read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_refresh_tokens--read`(
 	IN `refreshToken` VARCHAR(255)
 )
     READS SQL DATA
@@ -176,7 +176,7 @@ END//
 DELIMITER ;
 
 DELIMITER //
-CREATE DEFINER=`root`@`localhost` PROCEDURE `users__read`(
+CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_users--read`(
 	IN `username` VARCHAR(254)
 )
     READS SQL DATA
