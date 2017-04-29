@@ -1,6 +1,7 @@
 const debugFn = require('debug')
 const csrfToken = require('./csrfToken')
 const cookie = require('./cookie')
+const qs = require('querystring')
 
 const debug = debugFn('oauth2-router')
 debug.error = debugFn('oauth2-router::error')
@@ -32,6 +33,14 @@ function basicAuthHeader (client) {
   return 'Basic ' + (Buffer.from(`${clientId}:${clientSecret || ''}`)).toString('base64')
 }
 
+function wrapQuery (query) {
+  return Buffer.from(qs.stringify(query || {})).toString('base64')
+}
+
+function unwrapQuery (string) {
+  return Buffer.from(string || '', 'base64').toString()
+}
+
 module.exports = {
   csrfToken,
   cookie,
@@ -40,5 +49,7 @@ module.exports = {
   toArray,
   objToArray,
   basicAuthHeader,
-  logRequest
+  logRequest,
+  wrapQuery,
+  unwrapQuery
 }

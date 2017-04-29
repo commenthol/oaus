@@ -12,9 +12,7 @@ const config = {
     connector: 'mysql',
     url: 'mysql://dev:dev@localhost/oauth2'
   },
-  login: {
-    client: {clientId: 'login', clientSecret: 'loginSecret'}
-  },
+  login: {clientId: 'login', clientSecret: 'loginSecret'},
   csrfTokenSecret: 'CHANGE-THIS-IN-ANY-CASE!!!'
 }
 

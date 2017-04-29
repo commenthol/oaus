@@ -6,6 +6,14 @@ const login = require('./login')
 
 module.exports = appLogin
 
+/**
+* @param {Object} config
+* @param {String} config.csrfTokenSecret - csrf token secret
+* @param {String} config.client.clientId - oauth2 clientId for login App
+* @param {String} config.client.clientSecret - oauth clientSecret
+* @param {Object} config.model - oauth2 database models
+* @return {Object} express app
+*/
 function appLogin (config) {
   const app = express()
 
@@ -21,7 +29,7 @@ function appLogin (config) {
   app.use(bodyParser.urlencoded({ extended: false }))
 
   app.get('/', login.get)
-  app.post('/', login.post(config.login.client))
+  app.post('/', login.post)
 
   return app
 }
