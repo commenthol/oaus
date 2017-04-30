@@ -2,10 +2,10 @@
 * OAuth2 router
 * @module oauth
 */
-const router = require('./router')
-const oauth2 = require('./oauth2')
+// const router = require('./router')
+const OAuth2Mw = require('./OAuth2Mw')
 
 module.exports = {
-  router,
-  oauth2
+  // router,
+  OAuth2Mw
 }

@@ -255,16 +255,11 @@ module.exports = function (db) {
     })
   }
 
-  /*
-  function validateScope (token, scope) {   // TODO implement
-    debug('validateScope', token, scope)
-    return (User.scope === scope && OAuthClients.scope === scope && scope !== null) ? scope : false
+  function validateScope (token, scope) {
+    console.log('validateScope', token, scope)
+    // return (User.scope === scope && OAuthClients.scope === scope && scope !== null) ? scope : false
+    return true // TODO implement
   }
-
-  function verifyScope (token, scope) {
-    return token.scope === scope
-  }
-  */
 
   /** === non oauth2-server methods === */
 
@@ -311,8 +306,7 @@ module.exports = function (db) {
     revokeToken,
     saveToken,
     saveAuthorizationCode,
-    // validateScope,
-    // verifyScope,
+    validateScope,
     revokeAllTokens
   }
 }

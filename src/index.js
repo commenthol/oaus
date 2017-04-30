@@ -7,7 +7,7 @@ const models = require('./models')
 const utils = require('./utils')
 
 module.exports = {
-  oauth2,
+  OAuth2Mw: oauth2.OAuth2Mw,
   login,
   models,
   utils

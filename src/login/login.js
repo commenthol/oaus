@@ -2,69 +2,99 @@
 * middleware functions for login
 */
 
-const {objToArray, debug, basicAuthHeader, cookie, logRequest, wrapQuery, unwrapQuery} = require('./utils')
-const Request = require('oauth2-server').Request
-const Response = require('oauth2-server').Response
+const {objToArray, debug, basicAuthHeader, csrfToken, cookie, wrapQuery, unwrapQuery} = require('../utils')
+const {resolve} = require('path')
+const httpError = require('http-errors')
 const errOK200 = new Error('ok')
+const _get = require('lodash.get')
+
+const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
 
 // alert messages
 const alerts = {
-  csrf: {strong: 'Caution!', text: 'CSRF token is invalid'},
-  nouser: {strong: 'Oops snap!', text: 'Username or password is missing'},
-  badcreds: {strong: 'Oops snap!', text: 'Wrong Email address or Password'},
-  error: {strong: 'Oops sorry', text: 'Something went wrong..'}
+  'bad csrf token':
+    {strong: 'Caution!', text: 'CSRF token is invalid'},
+  'no username or password':
+    {strong: 'Oops snap!', text: 'Username or password is missing'},
+  badcreds:
+    {strong: 'Oops snap!', text: 'Wrong Email address or Password'},
+  error:
+    {strong: 'Oops sorry', text: 'Something went wrong..'}
 }
 
 // middleware chains
 module.exports = {
-  get: [logRequest, render],
-  post: [logRequest, verify, error]
+  render,
+  setCsrfToken,
+  verifyCsrfToken,
+  verifyBody,
+  setAuth,
+  setCookie,
+  error
 }
 
-/**
-* verify login attempt
-* @param {Object} client - `{clientId: 'login', clientSecret: 'login'}` oauth2 client credentials for login app
-*/
-function verify (req, res, next) {
-  const {body} = req
-  const {username, password, csrf} = body
-  const {model, login, csrfToken} = req._oauth2
-
-  if (!csrfToken.verify(csrf)) {
-    res.body = {alert: alerts.csrf}
-    next(errOK200)
-  } else if (!username || !password) {
-    res.body = {alert: alerts.nouser}
-    next(errOK200)
-  } else {
-    req.headers.authorization = basicAuthHeader(login)
-    const request = new Request(req)
-    const response = new Response(res)
-
-    model.oauth.token(request, response)
-    .then(function (token) {
-      if (!token || !token.accessToken) throw new Error('no token found')
-      console.log('###1', token, req.baseUrl, req.originalUrl)
-
-      cookie.set(res, 'access', token.accessToken, {path: req.baseUrl || '/', expires: token.accessTokenExpiresAt, httpOnly: true}) /* , secure: true */
-      if (token.refreshToken) {
-        cookie.set(res, 'refresh', token.refreshToken, {path: req.originalUrl || '/', expires: token.refreshTokenExpiresAt, httpOnly: true}) /* , secure: true */
-      }
-      console.log('##2', res.getHeader('set-cookie'))
-      res.end() // TODO
-    })
-    .catch((err) => {
-      debug.error('login-verify %j', err)
-      res.body = res.body || {alert: alerts.error}
-      if (/user credentials are invalid/.test(err.message)) {
-        res.body = {alert: alerts.badcreds}
-      }
-      next(errOK200)
-    })
+function setCsrfToken (secret) {
+  const tokenFn = csrfToken(secret)
+  return (req, res, next) => {
+    if (!req.locals) req.locals = {}
+    req.locals.csrfToken = tokenFn
+    next()
   }
 }
 
+function verifyCsrfToken (req, res, next) {
+  let err
+  const csrf = _get(req, 'body.csrf')
+  if (!req.locals.csrfToken.verify(csrf)) {
+    err = httpError(400, 'bad csrf token')
+  }
+  next(err)
+}
+
+function verifyBody (req, res, next) {
+  let err
+  const {username, password} = req.body || {}
+  if (!username || !password) {
+    err = httpError(400, 'no username or password')
+  }
+  next(err)
+}
+
+/**
+* @param {Object} client - {clientId, clientSecret}
+*/
+function setAuth (client) {
+  return (req, res, next) => {
+    req.headers.authorization = basicAuthHeader(client)
+    next()
+  }
+}
+
+function setCookie (req, res, next) {
+  const {token} = res.locals
+  delete res.locals.token
+  const rememberMe = (_get(req, 'body.remember') === 'on')
+
+  cookie.set(res, 'access', token.accessToken, {
+    path: resolve(req.baseUrl, '..'),
+    expires: token.accessTokenExpiresAt,
+    httpOnly: true,
+    secure: !isEnvDev
+  })
+  if (token.refreshToken) {
+    cookie.set(res, 'refresh', token.refreshToken, {
+      path: req.baseUrl || '/',
+      expires: rememberMe ? token.refreshTokenExpiresAt : undefined,
+      httpOnly: true,
+      secure: !isEnvDev
+    })
+  }
+
+  next()
+}
+
 function error (err, req, res, next) {
+  console.log(err)
   res.status(err.status || 200)
   render(req, res)
 }
@@ -82,11 +112,10 @@ function render (req, res) {
 
 function hiddenLogin (req) {
   const {query} = req
-  const {csrfToken} = req._oauth2
   const hidden = {
     grant_type: 'password',
-    csrf: csrfToken.create(),
-    wrap: query.wrap || wrapQuery(query)
+    csrf: req.locals.csrfToken.create(),
+    qs: query.qs || wrapQuery(query)
   }
   debug('hidden', hidden)
   return objToArray(hidden)

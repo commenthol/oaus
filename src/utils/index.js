@@ -23,8 +23,8 @@ function objToArray (obj) {
 }
 
 function logRequest (req, res, next) {
-  let {method, url, headers, params, query, body} = req
-  console.log(JSON.stringify({method, url, headers, params, query, body}, null, 2))
+  let {method, url, headers, params, query, body, baseUrl, originalUrl} = req
+  console.log(JSON.stringify({method, url, headers, params, query, body, baseUrl, originalUrl}, null, 2))
   next()
 }
 
