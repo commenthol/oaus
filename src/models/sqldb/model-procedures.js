@@ -6,14 +6,13 @@ const {debug, toArray} = require('../../utils')
 const {callBuilder, toJSON, throwOnDbErr} = require('./storedProc')
 const _get = require('lodash.get')
 
-module.exports = function (db, model) {
+module.exports = function (db) {
   /** wrapper for stored procedure call */
   function storedQuery (...args) {
     return db.sequelize.query(callBuilder(...args))
   }
 
-  // @overwrite
-  model.getAccessToken = function (bearerToken) {
+  function getAccessToken (bearerToken) {
     debug('getAccessToken', bearerToken)
     return storedQuery('oauth_access_tokens__read', bearerToken)
     .then((accessTokens) => {
@@ -28,7 +27,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.getRefreshToken = function (refreshToken) {
+  function getRefreshToken (refreshToken) {
     debug('getRefreshToken %s', refreshToken)
     if (!refreshToken || refreshToken === 'undefined') return null
 
@@ -45,7 +44,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.getAuthorizationCode = function (code) {
+  function getAuthorizationCode (code) {
     debug('getAuthorizationCode %s', code)
     return storedQuery('oauth_authorization_codes__read', code)
     .then((authCodes) => {
@@ -59,7 +58,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.getClient = function (clientId, clientSecret) {
+  function getClient (clientId, clientSecret) {
     debug('getClient %s %s', clientId, clientSecret)
     return storedQuery('oauth_clients__read', clientId, clientSecret)
     .then((data) => {
@@ -79,7 +78,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.getUser = function (username, password) {
+  function getUser (username, password) {
     return storedQuery('oauth_users__read', username)
     .then((users) => {
       if (!users || !users.length) return null
@@ -93,7 +92,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.getUserFromClient = function (client) {
+  function getUserFromClient (client) {
     debug('getUserFromClient %j', client)
     return storedQuery('oauth_clients__users__read', client.clientId, client.clientSecret)
     .then((clients) => {
@@ -106,7 +105,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.saveToken = function (token, client, user) {
+  function saveToken (token, client, user) {
     debug('saveToken %j %j %j', token, client, user)
     return Promise.all([
       storedQuery('oauth_access_tokens__create', token.accessToken, token.accessTokenExpiresAt, token.scope, client.id, user.id),
@@ -127,7 +126,7 @@ module.exports = function (db, model) {
     })
   }
 
-  model.saveAuthorizationCode = function (code, client, user) {
+  function saveAuthorizationCode (code, client, user) {
     debug('saveAuthorizationCode %s %j %j', code, client, user)
     return storedQuery('oauth_authorization_codes__create',
       code.authorizationCode, code.expiresAt, code.redirectUri, code.scope,
@@ -140,5 +139,17 @@ module.exports = function (db, model) {
       debug.error('saveAuthorizationCode %j', err)
       throwOnDbErr(err)
     })
+  }
+
+  // exports
+  return {
+    getAccessToken,
+    getRefreshToken,
+    getAuthorizationCode,
+    getClient,
+    getUser,
+    getUserFromClient,
+    saveToken,
+    saveAuthorizationCode
   }
 }
