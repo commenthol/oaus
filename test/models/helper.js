@@ -27,22 +27,6 @@ const getUserClient = (model, user, client) => {
   ])
 }
 
-const objectKeysType = (obj) => {
-  const type = toString.call(obj).replace(/^\[object (.*)\]$/, '$1')
-  switch (type) {
-    case 'Object':
-      let o = {}
-      Object.keys(obj).forEach((k) => {
-        o[k] = objectKeysType(obj[k])
-      })
-      return o
-    case 'Array':
-      return obj.map((k) => (objectKeysType(k)))
-    default:
-      return type
-  }
-}
-
 const timeout = (timeout) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -56,6 +40,5 @@ module.exports = {
   refreshToken,
   authorizationCode,
   getUserClient,
-  objectKeysType,
   timeout
 }

@@ -11,7 +11,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "connect-chain-if": "^1.0.0",
     "cookie": "^0.3.1",
+    "cookie-parser": "^1.4.3",
     "csrf": "^3.0.6",
     "debug": "^2.6.6",
     "express-hbs": "^1.0.4",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "body-parser": "^1.17.1",
     "bootstrap": "^3.3.7",
+    "cheerio": "^0.22.0",
     "eslint": "^3.19.0",
     "eslint-config-standard": "^10.2.1",
     "eslint-plugin-import": "^2.2.0",
@@ -38,6 +41,7 @@
     "mocha": "^3.3.0",
     "mongoose": "^4.9.6",
     "mysql": "^2.13.0",
+    "set-cookie-parser": "^2.0.0",
     "supertest": "^3.0.0"
   },
   "eslintConfig": {
@@ -45,7 +49,8 @@
       "standard"
     ],
     "rules": {
-      "camelcase": 1
+      "camelcase": 1,
+      "no-console": 1
     }
   }
 }

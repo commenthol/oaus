@@ -6,9 +6,11 @@ const {
   refreshToken,
   authorizationCode,
   getUserClient,
-  objectKeysType,
   timeout
 } = require('./helper')
+const {
+  objectKeysType
+} = require('../helper')
 
 const models = require('../../src/models')
 

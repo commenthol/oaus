@@ -1,6 +1,9 @@
-const {debug, toArray} = require('../../utils')
+const {toArray} = require('../../utils')
 const _get = require('lodash.get')
 const {throwOnDbErr} = require('./storedProc')
+
+const debug = require('debug')('oauth2__model')
+debug.error = require('debug')('oauth2::error')
 
 /**
 * @param {Object} db - database instance
@@ -233,7 +236,9 @@ module.exports = function (db) {
       }
     }).then((authCode) => {
       if (authCode) authCode.destroy()
-      return null
+      // expire the code
+      code.expiresAt = new Date(0)
+      return code
     }).catch((err) => {
       debug.error('revokeAuthorizationCode %j', err)
       throwOnDbErr(err)
@@ -248,7 +253,9 @@ module.exports = function (db) {
       }
     }).then((refreshToken) => {
       if (refreshToken) refreshToken.destroy()
-      return null
+      // expire the token
+      token.refreshTokenExpiresAt = new Date(0)
+      return token
     }).catch((err) => {
       debug.error('revokeToken %j', err)
       throwOnDbErr(err)
