@@ -2,9 +2,10 @@
 * model overwrites using stored procedures
 */
 
+const bcrypt = require('bcrypt')
+const _get = require('lodash.get')
 const {debug, toArray} = require('../../utils')
 const {callBuilder, toJSON, throwOnDbErr} = require('./storedProc')
-const _get = require('lodash.get')
 
 module.exports = function (db) {
   /** wrapper for stored procedure call */
@@ -79,12 +80,18 @@ module.exports = function (db) {
   }
 
   function getUser (username, password) {
+    let _user = null
     return storedQuery('oauth_users__read', username)
     .then((users) => {
       if (!users || !users.length) return null
       const user = users[0]
-      debug('user %j', user)
-      return user.password === password ? user : null
+      debug('getUser %j', user)
+      _user = user
+      return bcrypt.compare(password, user.password)
+    })
+    .then((bcryptRes) => {
+      debug('getUser bcrypt %s %s', username, bcryptRes)
+      return bcryptRes ? _user : null
     })
     .catch((err) => {
       debug.error('getUser %j', err)

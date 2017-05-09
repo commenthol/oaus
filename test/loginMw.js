@@ -11,7 +11,7 @@ const {objectKeysType} = require('./helper')
 
 const config = {
   database: {   // database settings
-    // logging: false,
+    logging: false,
     connector: 'mysql',
     url: 'mysql://dev:dev@localhost/oauth2'
   },
@@ -24,16 +24,7 @@ const config = {
 
 const app = require('../example/app')(config)
 
-// // render engine just passes render options as JSON data
-// app.set('view engine', 'hbs')
-// app.engine('hbs', (filepath, options, callback) => {
-//   // console.log('render', options)
-//   callback(null, options)
-// })
-// app.get('/login', loginMw.get())
-// app.post('/login', loginMw.post())
-
-describe('#LoginMw', function () {
+describe('#login', function () {
   it('should get rendered page', function (done) {
     request(app)
     .get('/login')
@@ -189,19 +180,16 @@ describe('#LoginMw', function () {
       .expect(302, done)
     })
 
-    it('should request new accesstoken', function (done) {
+    it('should request new accesstoken and redirect', function (done) {
       request(app)
       .get('/login')
       .set('cookie', `refresh=${refreshToken}`)
       .query({
-        grant_type: 'authorization_code',
-        client_id: 'demo',
-        redirect_uri: 'http:localhost:3000/cb',
-        state: 'abcdef123456'
+        origin: '%2Foauth%2Fauthorize%3Fresponse_type%3Dcode%26client_id%3Ddemo%26redirect_uri%3Dhttp%253A%252F%252Flocalhost%253A3000%252Fcb%26state%3Dxyz'
       })
       .expect((res) => {
         let cookies = setCookieParse(res)
-        assert.equal(res.headers.location, '/oauth?grant_type=authorization_code&client_id=demo&redirect_uri=http%3Alocalhost%3A3000%2Fcb&state=abcdef123456')
+        assert.equal(res.headers.location, '/oauth/authorize?response_type=code&client_id=demo&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcb&state=xyz&_login=1')
         assert.deepEqual(objectKeysType(cookies.access),
           {name: 'String', value: 'String', path: 'String', expires: 'Date', httpOnly: 'Boolean'}
         )

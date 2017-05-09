@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `oauth_scopes` (
 CREATE TABLE IF NOT EXISTS `oauth_users` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `password` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `password` varchar(80) COLLATE utf8_unicode_ci DEFAULT NULL,
   `scope` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

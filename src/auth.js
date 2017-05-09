@@ -12,8 +12,8 @@ module.exports = function (config) {
   router.use(bodyParser.json())
   router.use(bodyParser.urlencoded({ extended: false }))
 
-  router.all('/token', oauth2mw.token)
-  router.get('/authorize', oauth2mw.authorize)
+  router.all('/token', oauth2mw.tokenChain())
+  router.get('/authorize', oauth2mw.authorizeChain())
 
   return router
 }

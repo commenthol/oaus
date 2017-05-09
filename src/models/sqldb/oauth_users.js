@@ -14,7 +14,7 @@ module.exports = function (sequelize, DataTypes) {
       unique: true
     },
     password: {
-      type: DataTypes.STRING(32),
+      type: DataTypes.STRING(80),
       allowNull: true
     },
     scope: {

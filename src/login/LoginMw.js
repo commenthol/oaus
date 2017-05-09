@@ -4,20 +4,21 @@
 
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
+const url = require('url')
+const qs = require('querystring')
 const {
-  logRequest,
+  // logRequest,
   objToArray,
   trimUrl,
   httpError,
   basicAuthHeader,
   csrfToken,
-  cookie,
-  wrapQuery,
-  unwrapQuery
+  cookie
 } = require('../utils')
 const chain = require('connect-chain-if')
 const _get = require('lodash.get')
 const debug = require('debug')('oauth2__login-mw')
+debug.error = require('debug')('oauth2__login-mw::error')
 
 const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
 
@@ -27,7 +28,9 @@ const alerts = {
     {strong: 'The CSRF token is invalid!', text: 'Please try to resubmit the form'},
   invalid_grant:
     {strong: 'Oops snap!', text: 'Wrong Email address or Password. Please resubmit.'},
-  error:
+  session_expired:
+    {strong: 'Oops sorry', text: 'Your session has expired, please sign-in again.'},
+  server_error:
     {strong: 'Oops sorry', text: 'Something went wrong.. Please try again.'}
 }
 
@@ -38,7 +41,8 @@ class LoginMw {
     this.csrfTokenFn = csrfToken(config.csrfTokenSecret)
     this.oauthPath = config.oauthPath || '/oauth'
 
-    ;['get', 'post', 'verifyCsrfToken', 'verifyBody', 'setAuth', 'setCookie', 'refreshCookie', 'error', 'render']
+    ;['get', 'post', 'verifyCsrfToken', 'verifyBody', 'setAuth', 'setCookie',
+      'refreshCookie', 'error', 'render']
     .forEach((p) => (this[p] = this[p].bind(this)))
   }
 
@@ -46,23 +50,23 @@ class LoginMw {
   get () {
     return [
       cookieParser(),
-      logRequest,
+      // logRequest,
       this.refreshCookie,
-      this.render
+      this.render,
+      this.error
     ]
   }
 
   /** post middleware chain */
   post () {
     return [
-      bodyParser.urlencoded({ extended: false }),
-      logRequest,
+      bodyParser.urlencoded({extended: false}),
+      // logRequest,
       this.verifyCsrfToken,
       this.verifyBody,
       this.setAuth,
       this.oauth2mw.token,
       this.setCookie,
-      // redirect,
       this.error
     ]
   }
@@ -95,6 +99,11 @@ class LoginMw {
     delete res.locals.token
 
     debug('setCookie', token)
+    if (!token) {
+      next(httpError(401, 'invalid_grant'))
+      return
+    }
+
     const rememberMe = (_get(req, 'body.remember') === 'on')
 
     cookie.set(res, 'access', token.accessToken, {
@@ -112,15 +121,17 @@ class LoginMw {
       })
     }
 
-    const qs = unwrapQuery(_get(req, 'body.qs'))
-    let uri = _get(token, 'client.redirectUris[0]') || '/'
-    if (qs && /redirect_uri=/.test(qs)) {
-      uri = `${this.oauthPath}?${qs}`
+    let redirectUrl = '/' // TODO set default redirectUrl
+    let origin = url.parse(unescape(_get(req, 'body.origin', '')))
+    if (origin.pathname) {
+      let query = Object.assign(qs.parse(origin.query), {_login: 1})
+      origin.search = '?' + qs.stringify(query)
+      redirectUrl = url.format(origin)
     }
-    res.redirect(uri)
+    res.redirect(redirectUrl)
   }
 
-  refreshCookie (req, res, next) {
+  refreshCookie (req, res, next) { // GET chain
     const {refresh} = req.cookies // needs `cookie-parser`
 
     if (refresh) {
@@ -133,15 +144,18 @@ class LoginMw {
       req.body = {
         grant_type: 'refresh_token',
         refresh_token: refresh,
-        qs: wrappedQuery(req)
+        origin: _get(req, 'query.origin')
       }
       req.query = {}
 
       chain(
         this.setAuth,
-        logRequest,
         this.oauth2mw.token,
-        this.setCookie
+        this.setCookie,
+        (err, req, res, next) => { // eslint-disable-line handle-callback-err
+          // debug.error(err)
+          next(httpError(200, 'session_expired'))
+        }
       )(req, res, next)
     } else {
       next()
@@ -149,9 +163,9 @@ class LoginMw {
   }
 
   error (err, req, res, next) {
-    console.log(err)
+    debug.error('%j', err) // TODO log user, ip as well
     res.status(err.status || 200)
-    res.locals = Object.assign({}, res.locals, {alert: alerts[err.name || 'error']})
+    res.locals = Object.assign({}, res.locals, {alert: alerts[err.name || 'server_error']})
     this.render(req, res)
   }
 
@@ -169,18 +183,10 @@ class LoginMw {
     const hidden = {
       grant_type: 'password',
       csrf: this.csrfTokenFn.create(),
-      qs: wrappedQuery(req)
+      origin: _get(req, 'query.origin')
     }
     return objToArray(hidden)
   }
 }
 
 module.exports = LoginMw
-
-// helper functions
-
-function wrappedQuery (req) {
-  return _get(req, 'query.qs') ||
-    _get(req, 'body.qs') ||
-    wrapQuery(req.query)
-}

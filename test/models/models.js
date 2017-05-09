@@ -36,7 +36,6 @@ describe('#models', function () {
         return model.getUser(username, password)
         .then((user) => {
           assert.strictEqual(user.username, username)
-          assert.strictEqual(user.password, password)
         })
       })
       it('should run with unknown user', function () {

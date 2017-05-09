@@ -1,5 +1,6 @@
-const {toArray} = require('../../utils')
+const bcrypt = require('bcrypt')
 const _get = require('lodash.get')
+const {toArray} = require('../../utils')
 const {throwOnDbErr} = require('./storedProc')
 
 const debug = require('debug')('oauth2__model')
@@ -132,15 +133,21 @@ module.exports = function (db) {
   }
 
   function getUser (username, password) {
+    let _user = null
     return OAuthUsers
     .findOne({
       where: {username: username},
       attributes: ['id', 'username', 'password', 'scope']
     })
     .then((user) => {
-      debug('user %j', user)
+      debug('getUser %j', user)
       if (!user) return null
-      return user.password === password ? user.toJSON() : null
+      _user = user
+      return bcrypt.compare(password, user.password)
+    })
+    .then((bcryptRes) => {
+      debug('getUser bcrypt %s %s', username, bcryptRes)
+      return bcryptRes ? _user.toJSON() : null
     })
     .catch((err) => {
       debug.error('getUser %j', err)
