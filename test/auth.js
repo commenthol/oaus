@@ -2,6 +2,8 @@
 
 const assert = require('assert')
 const request = require('supertest')
+const qs = require('querystring')
+const url = require('url')
 // const setCookie = require('set-cookie-parser')
 
 const config = {
@@ -77,13 +79,87 @@ describe('#oauth', function () {
       })
     })
 
-    describe.skip('GET code grant', function () {
+    describe('POST client_credentials grant', function () {
+      it('should obtain access_token', function () {
+        return request(app)
+        .post('/oauth/token')
+        .auth('demo', 'demosecret')
+        .type('form')
+        .send({
+          grant_type: 'client_credentials'
+        })
+        .expect(200)
+        .expect((res) => {
+          assert.deepEqual(Object.keys(res.body).sort(),
+            ['access_token', 'expires_in', 'token_type']
+          )
+        })
+      })
+
+      it('should get error with bad secret', function () {
+        return request(app)
+        .post('/oauth/token')
+        .auth('demo', 'BAD')
+        .type('form')
+        .send({
+          grant_type: 'client_credentials'
+        })
+        .expect(401)
+        .expect({
+          error: 'invalid_client'
+        })
+      })
+    })
+
+    describe('POST refresh_token grant', function () {
+      let previous
+
+      before(function (done) {
+        request(app)
+        .post('/oauth/token')
+        .auth('demo', 'demosecret')
+        .type('form')
+        .send({
+          grant_type: 'password', username: 'admin@admin', password: 'admin'
+        })
+        .end(function (err, res) {
+          assert.ok(!err, '' + err)
+          assert.deepEqual(
+            Object.keys(res.body).sort(),
+            ['access_token', 'expires_in', 'refresh_token', 'token_type']
+          )
+          previous = res.body
+          done()
+        })
+      })
+
+      it('should obtain different tokens', function () {
+        return request(app)
+        .post('/oauth/token')
+        .auth('demo', 'demosecret')
+        .type('form')
+        .send({
+          grant_type: 'refresh_token', refresh_token: previous.refresh_token
+        })
+        .expect(200)
+        .expect((res) => {
+          assert.deepEqual(
+            Object.keys(res.body).sort(),
+            ['access_token', 'expires_in', 'token_type']
+          )
+          // token should be different
+          ;['access_token'].forEach((p) => {
+            assert.ok(res.body[p] !== previous[p], p)
+          })
+        })
+      })
     })
   })
 
-  describe.only('/authorize', function () {
+  describe('/authorize', function () {
     let accessToken
-/*
+    let authorizationCode
+    // /*
     before(function (done) {
       request(app)
       .post('/oauth/token')
@@ -101,9 +177,8 @@ describe('#oauth', function () {
         done()
       })
     })
-*/
-
-    accessToken = '75b885191d748ec450b97c01e8cd774e26be71aa'
+    // */
+    // accessToken = '75b885191d748ec450b97c01e8cd774e26be71aa'
 
     it('should authorize demo client', function () {
       return request(app)
@@ -116,6 +191,11 @@ describe('#oauth', function () {
       })
       .expect(302)
       .expect('Location', /^http:\/\/localhost:3000\/cb\?code=[^&]{20,}$/)
+      .expect((res) => {
+        let u = url.parse(res.headers.location)
+        let q = qs.parse(u.query)
+        authorizationCode = q.code
+      })
     })
 
     it('should authorize demo client with optional state', function () {
@@ -173,6 +253,42 @@ describe('#oauth', function () {
       })
       .expect(302)
       .expect('Location', 'http://localhost:3000/cb?error=invalid_token&state=xyz')
+    })
+
+    describe('POST /token authorization_code grant', function () {
+      it('should obtain access_token', function () {
+        return request(app)
+        .post('/oauth/token')
+        .auth('demo', 'demosecret')
+        .type('form')
+        .send({
+          grant_type: 'authorization_code',
+          code: authorizationCode,
+          redirect_uri: 'http://localhost:3000/cb'
+        })
+        .expect(200)
+        .expect((res) => {
+          assert.deepEqual(Object.keys(res.body).sort(),
+            ['access_token', 'expires_in', 'refresh_token', 'token_type']
+          )
+        })
+      })
+
+      it('should get error with bad authorizationCode', function () {
+        return request(app)
+        .post('/oauth/token')
+        .auth('demo', 'demosecret')
+        .type('form')
+        .send({
+          grant_type: 'authorization_code',
+          code: authorizationCode + '--invalid',
+          redirect_uri: 'http://localhost:3000/cb'
+        })
+        .expect(400)
+        .expect({
+          error: 'invalid_grant'
+        })
+      })
     })
   })
 })

@@ -2,13 +2,14 @@
 
 const assert = require('assert')
 const request = require('supertest')
-const {mongodb, mysql} = require('./support/config')
-// const initDb = require('./support/init-mongodb')
-const appFn = require('./support/app')
 
 const REDIRECT_URI = 'http://localhost:3000/cb'
 
-describe('oauth2-mongodb', function () {
+describe.skip('oauth2-mongodb', function () {
+  const {mongodb, mysql} = require('./support/config')
+  // const initDb = require('./support/init-mongodb')
+  const appFn = require('./support/app')
+
   let app = appFn(mongodb)
   // let app = appFn(mysql)
 
