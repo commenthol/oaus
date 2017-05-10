@@ -7,13 +7,14 @@ const cookie = require('./cookie')
 const debug = debugFn('oauth2-router')
 debug.error = debugFn('oauth2-router::error')
 
-const DELIMITER = ','
+const DELIMITER = ' '
 
 function fromArray (arr, delim) {
   return arr.join(delim || DELIMITER)
 }
 
 function toArray (str, delim) {
+  if (!str) return
   return str.split(delim || DELIMITER)
 }
 

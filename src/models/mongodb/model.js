@@ -1,33 +1,78 @@
-const {debug} = require('../../utils')
+const bcrypt = require('bcrypt')
+const _get = require('lodash.get')
 
+const debug = require('debug')('oauth2__model')
+debug.error = require('debug')('oauth2::error')
+
+/**
+* @param {Object} db - database instance
+*/
 module.exports = function (db) {
   const {
-    Users,
+    OAuthUsers,
     OAuthClients,
     OAuthAccessTokens,
     OAuthAuthorizationCodes,
-    OAuthRefreshTokens,
-    OAuthScopes
+    OAuthRefreshTokens
   } = db
 
-  function getAccessToken (bearerToken) {
-    debug('getAccessToken', bearerToken)
+  /* === models required by oauth2-server === */
 
+  function getAccessToken (bearerToken) {
     return OAuthAccessTokens
     .findOne({accessToken: bearerToken})
     .populate('userId')
     .populate('oauthClientId')
-    .then(function (accessToken) {
-      debug('accessToken %j', accessToken)
-      if (!accessToken) return false
-      const token = accessToken
-      token.user = token.userId
-      token.client = token.oauthClientId
-      token.scope = token.scope
+    .then((token) => {
+      debug('accessToken %j', token)
+      if (!token) return null
+      token = token.toJSON()
+      assignClientUser(token)
+      token.accessTokenExpiresAt = token.expiresAt
+      delete token.expiresAt
       return token
     })
-    .catch(function (err) {
+    .catch((err) => {
       debug.error('getAccessToken %j', err)
+    })
+  }
+
+  function getRefreshToken (refreshToken) {
+    debug('getRefreshToken %s', refreshToken)
+    if (!refreshToken || refreshToken === 'undefined') return false
+
+    return OAuthRefreshTokens
+    .findOne({refreshToken: refreshToken})
+    .populate('userId')
+    .populate('oauthClientId')
+    .then((token) => {
+      if (!token) return null
+      token = token.toJSON()
+      assignClientUser(token)
+      token.refreshTokenExpiresAt = token.expiresAt
+      delete token.expiresAt
+      debug('refreshToken %j', token)
+      return token
+    })
+    .catch((err) => {
+      debug.error('getRefreshToken %j', err)
+    })
+  }
+
+  function getAuthorizationCode (code) {
+    debug('getAuthorizationCode %s', code)
+    return OAuthAuthorizationCodes
+    .findOne({authorizationCode: code})
+    .populate('userId')
+    .populate('oauthClientId')
+    .then((code) => {
+      if (!code) return null
+      code = code.toJSON()
+      assignClientUser(code)
+      debug('authorizationCode %j', code)
+      return code
+    }).catch((err) => {
+      debug.error('getAuthorizationCode %j', err)
     })
   }
 
@@ -38,73 +83,58 @@ module.exports = function (db) {
 
     return OAuthClients
     .findOne(options)
-    .then(function (client) {
-      if (!client) {
-        return new Error('client not found')
-      }
-      const clientWithGrants = client
-      // TODO allow redirectUris
-      clientWithGrants.redirectUris = [clientWithGrants.redirectUri]
-      delete clientWithGrants.redirectUri
-      return clientWithGrants
-    }).catch(function (err) {
+    .then((client) => {
+      if (!client) return null
+      client = client.toJSON()
+      client.redirectUris = Array.from(new Set(client.redirectUris))
+      delete client.clientSecret
+      return client
+    }).catch((err) => {
       debug.error('getClient %j', err)
     })
   }
 
   function getUser (username, password) {
-    return Users
+    let _user = null
+    return OAuthUsers
     .findOne({username: username})
-    .then(function (user) {
-      debug('user %j', user)
-      return user.password === password ? user : false
+    .then((user) => {
+      debug('getUser %j', user)
+      if (!user) return null
+      _user = user
+      return bcrypt.compare(password, user.password)
     })
-    .catch(function (err) {
+    .then((bcryptRes) => {
+      debug('getUser bcrypt %s %s', username, bcryptRes)
+      if (bcryptRes) {
+        const user = _user.toJSON()
+        delete user.password
+        return user
+      }
+      return null
+    })
+    .catch((err) => {
       debug.error('getUser %j', err)
     })
   }
 
-  function revokeAuthorizationCode (code) {
-    debug('revokeAuthorizationCode', code)
-    return OAuthAuthorizationCodes.findOne({
-      where: {
-        authorizationCode: code.code
-      }
-    }).then(function (rCode) {
-    // if(rCode) rCode.destroy();
-    /***
-     * As per the discussion we need set older date
-     * revokeToken will expected return a boolean in future version
-     * https://github.com/oauthjs/node-oauth2-server/pull/274
-     * https://github.com/oauthjs/node-oauth2-server/issues/290
-     */
-      const expiredCode = code
-      expiredCode.expiresAt = new Date(0)
-      return expiredCode
-    }).catch(function (err) {
-      debug.error('getUser %j', err)
-    })
-  }
+  function getUserFromClient (client) {
+    debug('getUserFromClient %j', client)
+    const options = {clientId: client.clientId}
+    if (client.clientSecret) options.clientSecret = client.clientSecret
 
-  function revokeToken (token) {
-    debug('revokeToken %j', token)
-    return OAuthRefreshTokens.findOne({
-      where: {
-        refreshToken: token.refreshToken
-      }
-    }).then(function (refreshToken) {
-      if (refreshToken) refreshToken.destroy()
-    /***
-     * As per the discussion we need set older date
-     * revokeToken will expected return a boolean in future version
-     * https://github.com/oauthjs/node-oauth2-server/pull/274
-     * https://github.com/oauthjs/node-oauth2-server/issues/290
-     */
-      const expiredToken = token
-      expiredToken.refreshTokenExpiresAt = new Date(0)
-      return expiredToken
-    }).catch(function (err) {
-      debug.error('revokeToken %j', err)
+    return OAuthClients
+    .findOne(options)
+    .populate('userId')
+    .then((client) => {
+      if (!client || !client.userId) return null
+      let user = client.userId.toJSON()
+      debug('getUserFromClient %j', user)
+      delete user.password
+      return user
+    })
+    .catch((err) => {
+      debug.error('getUserFromClient %j', err)
     })
   }
 
@@ -128,40 +158,14 @@ module.exports = function (db) {
         })
         : []
     ])
-    .then(function (resultsArray) {
-      // expected to return client and user, but not returning
+    .then(() => {
       return Object.assign({
         client: client,
-        user: user,
-        accessToken: token.accessToken,
-        refreshToken: token.refreshToken
+        user: user
       }, token)
     })
-    .catch(function (err) {
-      debug.error('revokeToken %j', err)
-    })
-  }
-
-  function getAuthorizationCode (code) {
-    debug('getAuthorizationCode %s', code)
-    return OAuthAuthorizationCodes
-    .findOne({authorizationCode: code})
-    .populate('userId')
-    .populate('oauthClientId')
-    .then(function (authCodeModel) {
-      if (!authCodeModel) return false
-      const client = authCodeModel.oauthClientId
-      const user = authCodeModel.userId
-      return {
-        code: code,
-        client: client,
-        expiresAt: authCodeModel.expiresAt,
-        redirectUri: client.redirectUri,
-        user: user,
-        scope: authCodeModel.scope
-      }
-    }).catch(function (err) {
-      debug.error('getAuthorizationCode %j', err)
+    .catch((err) => {
+      debug.error('saveToken %j', err)
     })
   }
 
@@ -172,73 +176,86 @@ module.exports = function (db) {
       authorizationCode: code.authorizationCode,
       expiresAt: code.expiresAt,
       redirectUri: code.redirectUri,
-      scope: code.scope,
+      oauthClientId: client._id,
       userId: user._id,
-      oauthClientId: client._id
+      scope: code.scope
     })
-    .then(function () {
+    .then(() => {
       code.code = code.authorizationCode
       return code
-    }).catch(function (err) {
+    })
+    .catch((err) => {
       debug.error('saveAuthorizationCode %j', err)
     })
   }
 
-  function getUserFromClient (client) {
-    debug('getUserFromClient %j', client)
-    const options = {clientId: client.clientId}
-    if (client.clientSecret) options.clientSecret = client.clientSecret
-
-    return OAuthClients
-    .findOne(options)
-    .populate('userId')
-    .then(function (client) {
-      debug(client)
-      if (!client || !client.userId) return false
-      return client.userId
-    }).catch(function (err) {
-      debug.error('getUserFromClient %j', err)
+  function revokeAuthorizationCode (code) {
+    debug('revokeAuthorizationCode', code)
+    return OAuthAuthorizationCodes.deleteOne({
+      authorizationCode: code.code
+    }).then((authCode) => {
+      // if (authCode) authCode.destroy()
+      // expire the code
+      code.expiresAt = new Date(0)
+      return code
+    }).catch((err) => {
+      debug.error('revokeAuthorizationCode %j', err)
     })
   }
 
-  function getRefreshToken (refreshToken) {
-    debug('getRefreshToken %s', refreshToken)
-    if (!refreshToken || refreshToken === 'undefined') return false
-
-    return OAuthRefreshTokens
-    .findOne({refreshToken: refreshToken})
-    .populate('userId')
-    .populate('oauthClientId')
-    .then(function (savedRT) {
-      debug('savedRefreshToken %j', savedRT)
-      const tokenTemp = {
-        user: savedRT ? savedRT.userId : {},
-        client: savedRT ? savedRT.oauthClientId : {},
-        refreshTokenExpiresAt: savedRT ? new Date(savedRT.expiresAt) : null,
-        refreshToken: refreshToken,
-        scope: savedRT.scope
-      }
-      return tokenTemp
-    }).catch(function (err) {
-      debug.error('getRefreshToken %j', err)
+  function revokeToken (token) {
+    debug('revokeToken %j', token)
+    return OAuthRefreshTokens.deleteOne({
+      refreshToken: token.refreshToken
+    }).then((refreshToken) => {
+      // if (refreshToken) refreshToken.destroy()
+      // expire the token
+      token.refreshTokenExpiresAt = new Date(0)
+      return token
+    }).catch((err) => {
+      debug.error('revokeToken %j', err)
     })
   }
 
-  /*
-  function validateScope (token, scope) {   // TODO implement
-    debug('validateScope', token, scope)
-    return (User.scope === scope && OAuthClients.scope === scope && scope !== null) ? scope : false
+  function validateScope (user, client, scope) {
+    console.log('###validateScope', user, client, scope)
+    return 'undefined' // TODO add validation
   }
 
   function verifyScope (token, scope) {
-    return token.scope === scope
+    console.log('###verifyScope', token, scope)
+    return true // TODO add verification
   }
+
+  /** === non oauth2-server methods === */
+
+  /**
+  * destroy all tokens assigned to a user (his bearerToken) e.g. on logout from the server
+  * @param {String} bearerToken
   */
+  function revokeAllTokens (bearerToken) {
+    debug('revokeAllTokens bearerToken %s', bearerToken)
+    return getAccessToken(bearerToken) // find user by bearerToken
+    .then((accessToken) => {
+      const userId = _get(accessToken, 'user._id')
+      if (!accessToken || !userId) {
+        throw new Error('no accessToken or userId found')
+      }
+      debug('revokeAllTokens accessToken found %j', accessToken)
+      return Promise.all([
+        OAuthAuthorizationCodes.remove({userId: userId}),
+        OAuthRefreshTokens.remove({userId: userId}),
+        OAuthAccessTokens.remove({userId: userId})
+      ])
+    })
+    .catch((err) => {
+      debug.error('revokeAllTokens %j', err)
+    })
+  }
 
-  // ==== admin requests ====
-
+/*
   function findUser (username) {
-    return Users
+    return OAuthUsers
     .findOne({username: username})
     .then((user) => {
       return user
@@ -248,7 +265,7 @@ module.exports = function (db) {
     })
   }
   function upsertUser (user) {
-    return Users
+    return OAuthUsers
     .findOneAndUpdate({username: user.username}, user, {upsert: true})
     .then((user) => user)
     .catch((err) => {
@@ -256,7 +273,7 @@ module.exports = function (db) {
     })
   }
   function deleteUser (username) {
-    return Users
+    return OAuthUsers
     .findOneAndDelete({username: username})
     .then((user) => user)
     .catch((err) => {
@@ -292,23 +309,7 @@ module.exports = function (db) {
       debug.error('deleteClient %j', err)
     })
   }
-
-  function upsertScope (scope) {
-    return OAuthScopes
-    .findOneAndUpdate({scope: scope.scope}, scope, {upsert: true})
-    .then((scope) => scope)
-    .catch((err) => {
-      debug.error('upsertScope %j', err)
-    })
-  }
-  function deleteScope (scope) {
-    return OAuthScopes
-    .findOneAndDelete({scope: scope.scope})
-    .then((scope) => scope)
-    .catch((err) => {
-      debug.error('deleteScope %j', err)
-    })
-  }
+*/
 
   return {
     getAccessToken,
@@ -321,15 +322,32 @@ module.exports = function (db) {
     revokeToken,
     saveToken,
     saveAuthorizationCode,
-    // validateScope,
-    // verifyScope
-    findUser,
-    upsertUser,
-    deleteUser,
-    findClient,
-    upsertClient,
-    deleteClient,
-    upsertScope,
-    deleteScope
+    validateScope,
+    verifyScope,
+    revokeAllTokens
+    // findUser,
+    // upsertUser,
+    // deleteUser,
+    // findClient,
+    // upsertClient,
+    // deleteClient,
+    // upsertScope,
+    // deleteScope
+  }
+}
+
+/**
+* assign user and/or client after querying
+* @private
+*/
+function assignClientUser (data) {
+  if (!data) return
+  if (data.userId) {
+    data.user = data.userId
+    delete data.userId
+  }
+  if (data.oauthClientId) {
+    data.client = data.oauthClientId
+    delete data.oauthClientId
   }
 }

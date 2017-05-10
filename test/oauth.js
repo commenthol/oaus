@@ -8,9 +8,12 @@ const url = require('url')
 
 const config = {
   database: {   // database settings
-    logging: false,
-    connector: 'mysql',
-    url: 'mysql://dev:dev@localhost/oauth2'
+    // connector: 'mysql',
+    // url: 'mysql://dev:dev@localhost/oauth2',
+    // logging: false,
+    // storedProcedures: true
+    connector: 'mongodb',
+    url: 'mongodb://localhost/oauth2'
   },
   csrfTokenSecret: 'NEVER CHANGE SECRETS',
   oauth2: {     // oauth2-server settings

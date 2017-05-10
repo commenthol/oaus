@@ -66,6 +66,7 @@ module.exports = function (db) {
       if (!data || !data.length) return null
       // merge redirectUris
       const client = data[0]
+      delete client.clientSecret
       // unique array from client(s).redirectUri
       client.redirectUris = Array.from(new Set(data.map((client) => client.redirectUri)))
       delete client.redirectUri

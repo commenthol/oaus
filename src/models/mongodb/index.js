@@ -24,7 +24,7 @@ exports.connect = function connect (config) {
     OAuthClients: require('./OAuthClients'),
     OAuthRefreshTokens: require('./OAuthRefreshTokens'),
     OAuthScopes: require('./OAuthScopes'),
-    Users: require('./Users')
+    OAuthUsers: require('./OAuthUsers')
   }
 
   const model = require('./model')(db)

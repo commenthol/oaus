@@ -31,7 +31,7 @@ function setup (pConfig) {
 
   oauth2.views(app) // set hbs views
   app.use('/login', oauth2.login(config))
-  app.use('/oauth', oauth2.auth(config))
+  app.use('/oauth', oauth2.oauth(config))
   oauth2.error(app) // set error pages
 
   return app

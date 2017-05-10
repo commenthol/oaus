@@ -1,19 +1,23 @@
 // helper functions
+const expiresAt = (seconds = 1) => {
+  return new Date(Date.now() + (seconds * 1000))
+}
+
 const accessToken = (value, expiresIn, scope) => ({
   accessToken: value,
-  accessTokenExpiresAt: new Date(Date.now() + expiresIn || 0),
+  accessTokenExpiresAt: expiresAt(expiresIn),
   scope: scope || null
 })
 
 const refreshToken = (value, expiresIn, scope) => ({
   refreshToken: value,
-  refreshTokenExpiresAt: new Date(Date.now() + expiresIn || 0),
+  refreshTokenExpiresAt: expiresAt(expiresIn),
   scope: scope || null
 })
 
 const authorizationCode = (value, expiresIn, redirectUri, scope) => ({
   authorizationCode: value,
-  expiresAt: new Date(Date.now() + expiresIn || 0),
+  expiresAt: expiresAt(expiresIn),
   redirectUri: redirectUri || null,
   scope: scope || null
 })

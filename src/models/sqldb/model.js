@@ -119,6 +119,7 @@ module.exports = function (db) {
       if (!pClient) return null
       // merge redirectUris
       const client = pClient.toJSON()
+      delete client.clientSecret
       // unique array from client(s).redirectUri
       client.redirectUris = Array.from(new Set(client.oauth_clients_redirects.map((client) => client.redirectUri)))
       delete client.oauth_clients_redirects
@@ -157,7 +158,7 @@ module.exports = function (db) {
 
   function getUserFromClient (client) {
     debug('getUserFromClient %j', client)
-    var options = {
+    const options = {
       where: {clientId: client.clientId},
       attributes: ['id', 'clientId'],
       include: [{
@@ -202,7 +203,6 @@ module.exports = function (db) {
         : []
     ])
     .then(() => {
-      // expected to return client and user, but not returning
       return Object.assign({
         client: client,
         user: user
@@ -269,10 +269,14 @@ module.exports = function (db) {
     })
   }
 
-  function validateScope (token, scope) {
-    console.log('validateScope', token, scope)
-    // return (User.scope === scope && OAuthClients.scope === scope && scope !== null) ? scope : false
-    return true // TODO implement
+  function validateScope (user, client, scope) {
+    console.log('###validateScope', user, client, scope)
+    return 'undefined' // TODO add validation
+  }
+
+  function verifyScope (token, scope) {
+    console.log('###verifyScope', token, scope)
+    return true // TODO add verification
   }
 
   /** === non oauth2-server methods === */
@@ -321,6 +325,7 @@ module.exports = function (db) {
     saveToken,
     saveAuthorizationCode,
     validateScope,
+    verifyScope,
     revokeAllTokens
   }
 }

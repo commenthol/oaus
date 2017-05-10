@@ -1,5 +1,5 @@
 const router = require('./router')
-const LoginMw = require('./LoginMw')
+const OAuth2Mw = require('./OAuth2Mw')
 
 module.exports = exports = router
-exports.LoginMw = LoginMw
+exports.OAuth2Mw = OAuth2Mw
