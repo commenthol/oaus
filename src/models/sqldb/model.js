@@ -119,7 +119,6 @@ module.exports = function (db) {
       if (!pClient) return null
       // merge redirectUris
       const client = pClient.toJSON()
-      delete client.clientSecret
       // unique array from client(s).redirectUri
       client.redirectUris = Array.from(new Set(client.oauth_clients_redirects.map((client) => client.redirectUri)))
       delete client.oauth_clients_redirects

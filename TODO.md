@@ -2,7 +2,7 @@
 
 - [x] secure user passwords (bcrypt)
 - [x] /token, /authorize routing
-- [ ] authorize ...
+- [x] authenticate
 - [ ] scopes / model verifyScope, validateScope
 - [ ] client for complete flow
 - [ ] review API

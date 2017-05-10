@@ -61,12 +61,12 @@ module.exports = function (db) {
 
   function getClient (clientId, clientSecret) {
     debug('getClient %s %s', clientId, clientSecret)
-    return storedQuery('oauth_clients__read', clientId, clientSecret)
+    return storedQuery('oauth_clients__read', clientId)
     .then((data) => {
       if (!data || !data.length) return null
       // merge redirectUris
       const client = data[0]
-      delete client.clientSecret
+      if (clientSecret && client.clientSecret !== clientSecret) return null
       // unique array from client(s).redirectUri
       client.redirectUris = Array.from(new Set(data.map((client) => client.redirectUri)))
       delete client.redirectUri
@@ -102,10 +102,12 @@ module.exports = function (db) {
 
   function getUserFromClient (client) {
     debug('getUserFromClient %j', client)
-    return storedQuery('oauth_clients__users__read', client.clientId, client.clientSecret)
+    return storedQuery('oauth_clients__users__read', client.clientId)
     .then((clients) => {
       if (!clients || !clients.length) return null
-      const user = _get(toJSON(clients[0]), 'user')
+      const _client = toJSON(clients[0])
+      if (client.clientSecret && _client.clientSecret !== client.clientSecret) return null
+      const user = _get(_client, 'user')
       return user
     }).catch((err) => {
       debug.error('getUserFromClient %j', err)

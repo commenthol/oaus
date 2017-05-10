@@ -1,5 +1,6 @@
 const express = require('express')
 const {resolve} = require('path')
+const _merge = require('lodash.merge')
 const oauth2 = require('..')
 
 module.exports = setup
@@ -24,14 +25,21 @@ const defaultConfig = {
 function setup (pConfig) {
   const app = express()
 
-  const config = Object.assign({}, defaultConfig, pConfig)
-  config.oauth2mw = new oauth2.OAuth2Mw(config)
+  const config = _merge({}, defaultConfig, pConfig)
+  const oauth2mw = new oauth2.OAuth2Mw(config)
+  config.oauth2mw = oauth2mw
 
   app.use(express.static(resolve(__dirname, '../public')))
 
   oauth2.views(app) // set hbs views
   app.use('/login', oauth2.login(config))
   app.use('/oauth', oauth2.oauth(config))
+
+  app.get('/private', oauth2mw.authenticate, (req, res, next) => {
+    // console.log(req.headers)
+    res.send('private area')
+  })
+
   oauth2.error(app) // set error pages
 
   return app

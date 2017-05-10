@@ -10,10 +10,10 @@ const config = {
   database: {   // database settings
     // connector: 'mysql',
     // url: 'mysql://dev:dev@localhost/oauth2',
-    // logging: false,
-    // storedProcedures: true
-    connector: 'mongodb',
-    url: 'mongodb://localhost/oauth2'
+    logging: false,
+    storedProcedures: true
+    // connector: 'mongodb',
+    // url: 'mongodb://localhost/oauth2'
   },
   csrfTokenSecret: 'NEVER CHANGE SECRETS',
   oauth2: {     // oauth2-server settings
@@ -162,7 +162,7 @@ describe('#oauth', function () {
   describe('/authorize', function () {
     let accessToken
     let authorizationCode
-    // /*
+
     before(function (done) {
       request(app)
       .post('/oauth/token')
@@ -180,8 +180,6 @@ describe('#oauth', function () {
         done()
       })
     })
-    // */
-    // accessToken = '75b885191d748ec450b97c01e8cd774e26be71aa'
 
     it('should authorize demo client', function () {
       return request(app)
@@ -292,6 +290,36 @@ describe('#oauth', function () {
           error: 'invalid_grant'
         })
       })
+    })
+  })
+
+  describe('authenticate', function () {
+    let accessToken
+
+    before(function (done) {
+      request(app)
+      .post('/oauth/token')
+      .auth('login', 'loginsecret')
+      .type('form')
+      .send({
+        grant_type: 'password',
+        username: 'user@user',
+        password: 'user'
+      })
+      .expect(200)
+      .end((err, res) => {
+        assert.ok(!err, '' + err)
+        accessToken = res.body.access_token
+        done()
+      })
+    })
+
+    it('should access private area with valid access token', function () {
+      return request(app)
+      .get('/private')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(/private area/)
     })
   })
 })

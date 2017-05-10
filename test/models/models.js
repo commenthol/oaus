@@ -100,6 +100,7 @@ describe('#models', function () {
             assert.deepEqual(Object.keys(_.omit(client, ['id', '_id'])).sort(), [
               'accessTokenLifetime',
               'clientId',
+              'clientSecret',
               'createdAt',
               'grants',
               'name',
@@ -115,30 +116,33 @@ describe('#models', function () {
             assert.deepEqual(client.redirectUris, ['http://localhost:3000/cb', 'http://localhost:3000/cb1'])
           })
         })
+
         it('should get client without secret', function () {
           const {clientId, clientSecret} = clients.client
           return model.getClient(clientId, clientSecret)
-        .then((client) => {
-          // console.log(client)
-          assert.strictEqual(client.name, 'clientName')
-          assert.strictEqual(client.clientId, 'client')
-          assert.deepEqual(client.grants, ['authorization_code', 'password', 'refresh_token', 'client_credentials'])
-          assert.deepEqual(client.redirectUris, ['/cb2'])
+          .then((client) => {
+            // console.log(client)
+            assert.strictEqual(client.name, 'clientName')
+            assert.strictEqual(client.clientId, 'client')
+            assert.deepEqual(client.grants, ['authorization_code', 'password', 'refresh_token', 'client_credentials'])
+            assert.deepEqual(client.redirectUris, ['/cb2'])
+          })
         })
-        })
+
         it('should run on invalid clientId', function () {
           const {clientId, clientSecret} = clients.client
           return model.getClient(clientId + '###', clientSecret)
-        .then((client) => {
-          assert.strictEqual(client, null)
+          .then((client) => {
+            assert.strictEqual(client, null)
+          })
         })
-        })
+
         it('should not return client if secret is wrong', function () {
           const {clientId} = clients.demo
           return model.getClient(clientId, 'demoSecret')
-        .then((client) => {
-          assert.strictEqual(client, null)
-        })
+          .then((client) => {
+            assert.strictEqual(client, null)
+          })
         })
       })
 
@@ -164,6 +168,7 @@ describe('#models', function () {
                   _id: { _bsontype: 'String', id: 'Uint8Array' },
                   name: 'String',
                   clientId: 'String',
+                  clientSecret: 'String',
                   refreshTokenLifetime: 'Null',
                   accessTokenLifetime: 'Null',
                   scope: 'String',
@@ -190,6 +195,7 @@ describe('#models', function () {
                   id: 'Number',
                   name: 'String',
                   clientId: 'String',
+                  clientSecret: 'String',
                   grants: [ 'String', 'String', 'String', 'String' ],
                   refreshTokenLifetime: 'Null',
                   accessTokenLifetime: 'Null',

@@ -87,7 +87,6 @@ module.exports = function (db) {
       if (!client) return null
       client = client.toJSON()
       client.redirectUris = Array.from(new Set(client.redirectUris))
-      delete client.clientSecret
       return client
     }).catch((err) => {
       debug.error('getClient %j', err)

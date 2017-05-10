@@ -32,7 +32,8 @@ class oauth2Mw {
     this.oauthServer = oauthServer
     this.model = model // database model methods
 
-    ;[ 'authenticate',
+    ;[
+      'authenticate',
       'authorize',
       'token',
       'authorizeChain',
@@ -137,6 +138,7 @@ class oauth2Mw {
 
   _jsonError (err, req, res, next) {
     err = err || httpError(500, 'server_error')
+    debug.error('_jsonError %j', err)
     res.statusCode = err.status
     const body = noUndefined({
       error: err.name,

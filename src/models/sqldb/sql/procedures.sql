@@ -89,35 +89,33 @@ DELIMITER ;
 
 DELIMITER //
 CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__read`(
-	IN `clientId` VARCHAR(80),
-	IN `clientSecret` VARCHAR(80)
+	IN `clientId` VARCHAR(80)
 )
     READS SQL DATA
     DETERMINISTIC
-    COMMENT 'getClient(clientId, [clientSecret])'
+    COMMENT 'getClient(clientId)'
 BEGIN
 	SELECT clients.id, name, clientId, clientSecret, grants,
 		refreshTokenLifetime, accessTokenLifetime, scope,
 		clients.createdAt, clients.updatedAt, userId, redirects.redirectUri
 	FROM oauth_clients AS clients
 	INNER JOIN oauth_clients_redirects AS redirects ON redirects.oauthClientId = clients.id
-	WHERE clients.clientId = clientId AND
-		IF(ISNULL(clientSecret),ISNULL(clients.clientSecret),clients.clientSecret = clientSecret)
+	WHERE clients.clientId = clientId
 	LIMIT 5;
 END//
 DELIMITER ;
 
 DELIMITER //
 CREATE DEFINER=`root`@`localhost` PROCEDURE `oauth_clients__users__read`(
-	IN `clientId` VARCHAR(80),
-	IN `clientSecret` VARCHAR(80)
+	IN `clientId` VARCHAR(80)
 )
     READS SQL DATA
     DETERMINISTIC
-    COMMENT 'getUserFromClient(clientId, [clientSecret])'
+    COMMENT 'getUserFromClient(clientId)'
 BEGIN
 	SELECT `clients`.`id`,
 	  `clients`.`clientId`,
+	  `clients`.`clientSecret`,
 	  `user`.`id` AS `user.id`,
 	  `user`.`username` AS `user.username`,
 	  `user`.`scope` AS `user.scope`,
@@ -125,8 +123,7 @@ BEGIN
 	  `user`.`updatedAt` AS `user.updatedAt`
 	FROM `oauth_clients` AS `clients`
 	LEFT OUTER JOIN `oauth_users` AS `user` ON `clients`.`userId` = `user`.`id`
-	WHERE `clients`.`clientId` = clientId  AND
-		IF(ISNULL(clientSecret),ISNULL(`clients`.`clientSecret`), `clients`.`clientSecret` = clientSecret)
+	WHERE `clients`.`clientId` = clientId
 	LIMIT 1;
 END//
 DELIMITER ;
