@@ -4,8 +4,11 @@
 
 const bcrypt = require('bcrypt')
 const _get = require('lodash.get')
-const {debug, toArray} = require('../../utils')
+const {toArray} = require('../../utils')
 const {callBuilder, toJSON, throwOnDbErr} = require('./storedProc')
+
+const debug = require('debug')('oauth2__model-proc')
+debug.error = require('debug')('oauth2::error')
 
 module.exports = function (db) {
   /** wrapper for stored procedure call */
