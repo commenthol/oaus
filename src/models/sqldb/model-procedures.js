@@ -64,7 +64,7 @@ module.exports = function (db) {
 
   function getClient (clientId, clientSecret) {
     debug('getClient %s %s', clientId, clientSecret)
-    return storedQuery('oauth_clients__read', clientId)
+    return storedQuery('oauth_clients__read', clientId, clientSecret)
     .then((data) => {
       if (!data || !data.length) return null
       // merge redirectUris
@@ -105,7 +105,7 @@ module.exports = function (db) {
 
   function getUserFromClient (client) {
     debug('getUserFromClient %j', client)
-    return storedQuery('oauth_clients__users__read', client.clientId)
+    return storedQuery('oauth_clients__users__read', client.clientId, client.clientSecret)
     .then((clients) => {
       if (!clients || !clients.length) return null
       const _client = toJSON(clients[0])

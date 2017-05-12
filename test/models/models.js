@@ -182,6 +182,8 @@ describe('#models', function () {
                   _id: { _bsontype: 'String', id: 'Uint8Array' },
                   username: 'String',
                   scope: 'String',
+                  lastLoginAt: 'Date',
+                  lastLogoutAt: 'Date',
                   createdAt: 'Date',
                   updatedAt: 'Date'
                 },
@@ -469,6 +471,25 @@ describe('#models', function () {
         })
       })
 
+      describe('lastLoginAt', function () {
+        let gUser
+        before(() => {
+          const {username, password} = users.user
+          return model.getUser(username, password)
+          .then((user) => {
+            assert.strictEqual(user.username, username)
+            gUser = user
+          })
+        })
+
+        it('should set last login date in database', function () {
+          return model.lastLoginAt(gUser)
+          .then((res) => {
+            // console.log(res)
+          })
+        })
+      })
+
       describe('revokeToken', function () {
         let token
 
@@ -548,7 +569,7 @@ describe('#models', function () {
         it('should revoke all tokens for a user', function () {
           return model.revokeAllTokens(token.accessToken)
           .then((res) => {
-            assert.ok(res.length === 3)
+            assert.ok(res.length === 4)
             if (test.type !== 'mongo') {
               assert.ok(res[0] > 0)
             }

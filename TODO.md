@@ -4,6 +4,7 @@
 - [x] /token, /authorize routing
 - [x] authenticate
 - [x] bug in stored procedure getClient
+- [ ] users - lastLoginAt 
 - [ ] scopes / model verifyScope, validateScope
 - [ ] client for complete flow
 	- logout

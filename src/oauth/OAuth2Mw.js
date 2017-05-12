@@ -83,6 +83,23 @@ class oauth2Mw {
     .catch((err) => next(err))
   }
 
+  /**
+  * sets last login of user in database
+  * requires `res.locals.locals.token.user` to be set to a valid userId of a previous
+  * authentication (call `token()` first)
+  */
+  lastLoginAt (req, res, next) {
+    const user = _get(res, 'locals.token.user')
+    console.log(user)
+    // return next()
+    this.model.lastLoginAt(user)
+    .then(() => { next && next() })
+    .catch((err) => {
+      debug.error('lastLoginAt %j', err)
+      next && next(err)
+    })
+  }
+
   _authorizeResponse (req, res, next) {
     const {code} = res.locals
     const url = redirectUri(

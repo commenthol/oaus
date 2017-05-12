@@ -294,21 +294,31 @@ module.exports = function (db) {
       }
       debug('revokeAllTokens accessToken found %j', accessToken)
       return Promise.all([
-        OAuthAuthorizationCodes.destroy({
-          where: {userId: userId}
-        }),
-        OAuthRefreshTokens.destroy({
-          where: {userId: userId}
-        }),
-        OAuthAccessTokens.destroy({
-          where: {userId: userId}
-        })
+        OAuthAuthorizationCodes.destroy({where: {userId: userId}}),
+        OAuthRefreshTokens.destroy({where: {userId: userId}}),
+        OAuthAccessTokens.destroy({where: {userId: userId}}),
+        lastLogoutAt({id: userId})
       ])
     })
     .catch((err) => {
       debug.error('revokeAllTokens %j', err)
       throwOnDbErr(err)
     })
+  }
+
+  function lastLoginAt (user) {
+    if (!user || !user.id) return
+    return OAuthUsers.update(
+      {lastLoginAt: new Date()},
+      {where: {id: user.id}}
+    )
+  }
+
+  function lastLogoutAt (user) {
+    return OAuthUsers.update(
+      {lastLogoutAt: new Date()},
+      {where: {id: user.id}}
+    )
   }
 
   // exports
@@ -325,7 +335,9 @@ module.exports = function (db) {
     saveAuthorizationCode,
     validateScope,
     verifyScope,
-    revokeAllTokens
+    // ----
+    revokeAllTokens,
+    lastLoginAt
   }
 }
 

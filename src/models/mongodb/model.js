@@ -242,14 +242,32 @@ module.exports = function (db) {
       }
       debug('revokeAllTokens accessToken found %j', accessToken)
       return Promise.all([
-        OAuthAuthorizationCodes.remove({userId: userId}),
+        OAuthAuthorizationCodes.remove({userId: userId}), // TODO mighht not work
         OAuthRefreshTokens.remove({userId: userId}),
-        OAuthAccessTokens.remove({userId: userId})
+        OAuthAccessTokens.remove({userId: userId}),
+        lastLogoutAt({_id: userId})
       ])
     })
     .catch((err) => {
       debug.error('revokeAllTokens %j', err)
     })
+  }
+
+  function lastLoginAt (user, next) {
+    if (!user || !user._id) return
+    return OAuthUsers.findOneAndUpdate(
+      {_id: user._id},
+      {lastLoginAt: new Date()},
+      {upsert: true}
+    )
+  }
+
+  function lastLogoutAt (user) {
+    return OAuthUsers.findOneAndUpdate(
+      {_id: user._id},
+      {lastLogoutAt: new Date()},
+      {upsert: true}
+    )
   }
 
 /*
@@ -323,15 +341,9 @@ module.exports = function (db) {
     saveAuthorizationCode,
     validateScope,
     verifyScope,
-    revokeAllTokens
-    // findUser,
-    // upsertUser,
-    // deleteUser,
-    // findClient,
-    // upsertClient,
-    // deleteClient,
-    // upsertScope,
-    // deleteScope
+    // ----
+    revokeAllTokens,
+    lastLoginAt
   }
 }
 

@@ -50,7 +50,6 @@ class LoginMw {
   get () {
     return [
       cookieParser(),
-      // logRequest,
       this.refreshCookie,
       this.render,
       this.error
@@ -61,11 +60,11 @@ class LoginMw {
   post () {
     return [
       bodyParser.urlencoded({extended: false}),
-      // logRequest,
       this.verifyCsrfToken,
       this.verifyBody,
       this.setAuth,
       this.oauth2mw.token,
+      this.oauth2mw.lastLoginAt,
       this.setCookie,
       this.error
     ]
