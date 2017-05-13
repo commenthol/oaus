@@ -29,6 +29,7 @@ function setup (pConfig) {
   const oauth2mw = new oauth2.OAuth2Mw(config)
   config.oauth2mw = oauth2mw
 
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal')
   app.use(express.static(resolve(__dirname, '../public')))
 
   oauth2.views(app) // set hbs views

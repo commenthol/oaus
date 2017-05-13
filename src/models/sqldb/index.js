@@ -66,7 +66,7 @@ exports.connect = function connect (config) {
     OAuthUsers
   }
 
-  const model = require('./model')(db)
+  const model = require('./model')(db, config.secret)
   if (storedProcedures) {
     Object.assign(model, require('./model-procedures')(db))
   }

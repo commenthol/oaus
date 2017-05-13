@@ -1,13 +1,15 @@
 const bcrypt = require('bcrypt')
 const _get = require('lodash.get')
+const {generateSignedToken} = require('../common')
+const {httpError} = require('../../utils')
 
 const debug = require('debug')('oauth2__model')
-debug.error = require('debug')('oauth2::error')
+debug.error = require('debug')('oauth2__model::error').bind(undefined, '%j')
 
 /**
 * @param {Object} db - database instance
 */
-module.exports = function (db) {
+module.exports = function (db, secret) {
   const {
     OAuthUsers,
     OAuthClients,
@@ -15,6 +17,22 @@ module.exports = function (db) {
     OAuthAuthorizationCodes,
     OAuthRefreshTokens
   } = db
+
+  const generateSignedTokenFn = generateSignedToken(secret)
+
+  /* === === */
+
+  function generateAccessToken (client, user, scope) {
+    return generateSignedTokenFn(client, user, scope)
+  }
+
+  function generateRefreshToken (client, user, scope) {
+    return generateSignedTokenFn(client, user, scope)
+  }
+
+  function generateAuthorizationCode () {
+    return generateSignedTokenFn()
+  }
 
   /* === models required by oauth2-server === */
 
@@ -24,7 +42,7 @@ module.exports = function (db) {
     .populate('userId')
     .populate('oauthClientId')
     .then((token) => {
-      debug('accessToken %j', token)
+      debug('accessToken', token)
       if (!token) return null
       token = token.toJSON()
       assignClientUser(token)
@@ -33,12 +51,11 @@ module.exports = function (db) {
       return token
     })
     .catch((err) => {
-      debug.error('getAccessToken %j', err)
+      debug.error(Object.assign({fn: 'getAccessToken'}, err))
     })
   }
 
   function getRefreshToken (refreshToken) {
-    debug('getRefreshToken %s', refreshToken)
     if (!refreshToken || refreshToken === 'undefined') return false
 
     return OAuthRefreshTokens
@@ -51,16 +68,15 @@ module.exports = function (db) {
       assignClientUser(token)
       token.refreshTokenExpiresAt = token.expiresAt
       delete token.expiresAt
-      debug('refreshToken %j', token)
+      debug('refreshToken', token)
       return token
     })
     .catch((err) => {
-      debug.error('getRefreshToken %j', err)
+      debug.error(Object.assign({fn: 'getRefreshToken'}, err))
     })
   }
 
   function getAuthorizationCode (code) {
-    debug('getAuthorizationCode %s', code)
     return OAuthAuthorizationCodes
     .findOne({authorizationCode: code})
     .populate('userId')
@@ -69,15 +85,15 @@ module.exports = function (db) {
       if (!code) return null
       code = code.toJSON()
       assignClientUser(code)
-      debug('authorizationCode %j', code)
+      debug('authorizationCode', code)
       return code
     }).catch((err) => {
-      debug.error('getAuthorizationCode %j', err)
+      debug.error(Object.assign({fn: 'getAuthorizationCode'}, err))
     })
   }
 
   function getClient (clientId, clientSecret) {
-    debug('getClient %s %s', clientId, clientSecret)
+    debug('getClient', clientId, clientSecret)
     const options = {clientId: clientId}
     if (clientSecret) options.clientSecret = clientSecret
 
@@ -89,7 +105,7 @@ module.exports = function (db) {
       client.redirectUris = Array.from(new Set(client.redirectUris))
       return client
     }).catch((err) => {
-      debug.error('getClient %j', err)
+      debug.error(Object.assign({fn: 'getClient', clientId}, err))
     })
   }
 
@@ -98,13 +114,13 @@ module.exports = function (db) {
     return OAuthUsers
     .findOne({username: username})
     .then((user) => {
-      debug('getUser %j', user)
+      debug('getUser', user)
       if (!user) return null
       _user = user
       return bcrypt.compare(password, user.password)
     })
     .then((bcryptRes) => {
-      debug('getUser bcrypt %s %s', username, bcryptRes)
+      debug('getUser bcrypt', username, bcryptRes)
       if (bcryptRes) {
         const user = _user.toJSON()
         delete user.password
@@ -113,12 +129,12 @@ module.exports = function (db) {
       return null
     })
     .catch((err) => {
-      debug.error('getUser %j', err)
+      debug.error(Object.assign({fn: 'getUser', username}, err))
     })
   }
 
   function getUserFromClient (client) {
-    debug('getUserFromClient %j', client)
+    debug('getUserFromClient', client)
     const options = {clientId: client.clientId}
     if (client.clientSecret) options.clientSecret = client.clientSecret
 
@@ -128,17 +144,20 @@ module.exports = function (db) {
     .then((client) => {
       if (!client || !client.userId) return null
       let user = client.userId.toJSON()
-      debug('getUserFromClient %j', user)
+      debug('getUserFromClient', user)
       delete user.password
       return user
     })
     .catch((err) => {
-      debug.error('getUserFromClient %j', err)
+      debug.error(Object.assign({
+        fn: 'getUserFromClient',
+        clientId: client.clientId
+      }, err))
     })
   }
 
   function saveToken (token, client, user) {
-    debug('saveToken %j %j %j', token, client, user)
+    debug('saveToken', token, client, user)
     return Promise.all([
       OAuthAccessTokens.create({
         accessToken: token.accessToken,
@@ -164,12 +183,15 @@ module.exports = function (db) {
       }, token)
     })
     .catch((err) => {
-      debug.error('saveToken %j', err)
+      debug.error(Object.assign({
+        fn: 'saveToken',
+        clientId: client.clientId
+      }, err))
     })
   }
 
   function saveAuthorizationCode (code, client, user) {
-    debug('saveAuthorizationCode %s %j %j', code, client, user)
+    debug('saveAuthorizationCode', code, client, user)
     return OAuthAuthorizationCodes
     .create({
       authorizationCode: code.authorizationCode,
@@ -184,7 +206,11 @@ module.exports = function (db) {
       return code
     })
     .catch((err) => {
-      debug.error('saveAuthorizationCode %j', err)
+      debug.error(Object.assign({
+        fn: 'saveAuthorizationCode',
+        clientId: client.clientId,
+        username: user.username
+      }, err))
     })
   }
 
@@ -198,12 +224,12 @@ module.exports = function (db) {
       code.expiresAt = new Date(0)
       return code
     }).catch((err) => {
-      debug.error('revokeAuthorizationCode %j', err)
+      debug.error(Object.assign({fn: 'revokeAuthorizationCode'}, err))
     })
   }
 
   function revokeToken (token) {
-    debug('revokeToken %j', token)
+    debug('revokeToken', token)
     return OAuthRefreshTokens.deleteOne({
       refreshToken: token.refreshToken
     }).then((refreshToken) => {
@@ -212,7 +238,7 @@ module.exports = function (db) {
       token.refreshTokenExpiresAt = new Date(0)
       return token
     }).catch((err) => {
-      debug.error('revokeToken %j', err)
+      debug.error(Object.assign({fn: 'revokeToken'}, err))
     })
   }
 
@@ -233,14 +259,13 @@ module.exports = function (db) {
   * @param {String} bearerToken
   */
   function revokeAllTokens (bearerToken) {
-    debug('revokeAllTokens bearerToken %s', bearerToken)
     return getAccessToken(bearerToken) // find user by bearerToken
     .then((accessToken) => {
       const userId = _get(accessToken, 'user._id')
       if (!accessToken || !userId) {
-        throw new Error('no accessToken or userId found')
+        throw httpError(401, 'no accessToken or userId found')
       }
-      debug('revokeAllTokens accessToken found %j', accessToken)
+      debug('revokeAllTokens accessToken', accessToken)
       return Promise.all([
         OAuthAuthorizationCodes.remove({userId: userId}), // TODO mighht not work
         OAuthRefreshTokens.remove({userId: userId}),
@@ -249,7 +274,7 @@ module.exports = function (db) {
       ])
     })
     .catch((err) => {
-      debug.error('revokeAllTokens %j', err)
+      debug.error(Object.assign({fn: 'revokeAllTokens'}, err))
     })
   }
 
@@ -278,7 +303,7 @@ module.exports = function (db) {
       return user
     })
     .catch((err) => {
-      debug.error('findUser %j', err)
+      debug.error(Object.assign({fn: 'findUser', username}, err)
     })
   }
   function upsertUser (user) {
@@ -329,6 +354,10 @@ module.exports = function (db) {
 */
 
   return {
+    generateAccessToken,
+    generateRefreshToken,
+    generateAuthorizationCode,
+    // ---
     getAccessToken,
     getAuthorizationCode,
     getClient,
@@ -337,8 +366,8 @@ module.exports = function (db) {
     getUserFromClient,
     revokeAuthorizationCode,
     revokeToken,
-    saveToken,
     saveAuthorizationCode,
+    saveToken,
     validateScope,
     verifyScope,
     // ----

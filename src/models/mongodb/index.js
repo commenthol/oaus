@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
-const {debug} = require('../../utils')
+const debug = require('debug')('oauth2__model-mongo')
+debug.error = require('debug')('oauth2__model-mongo::error').bind(undefined, '%j')
 
 mongoose.Promise = global.Promise
 
@@ -12,7 +13,10 @@ mongoose.Promise = global.Promise
 exports.connect = function connect (config) {
   mongoose.connect(config.url, config, function (err) {
     if (err) {
-      debug.error(err)
+      debug.error({
+        error: err.message,
+        stack: err.stack
+      })
       return
     }
     debug('mongoose connected')
@@ -27,6 +31,6 @@ exports.connect = function connect (config) {
     OAuthUsers: require('./OAuthUsers')
   }
 
-  const model = require('./model')(db)
+  const model = require('./model')(db, config.secret)
   return {db, model}
 }

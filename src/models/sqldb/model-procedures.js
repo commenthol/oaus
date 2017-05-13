@@ -8,7 +8,7 @@ const {toArray} = require('../../utils')
 const {callBuilder, toJSON, throwOnDbErr} = require('./storedProc')
 
 const debug = require('debug')('oauth2__model-proc')
-debug.error = require('debug')('oauth2::error')
+debug.error = require('debug')('oauth2__model-proc::error').bind(undefined, '%j')
 
 module.exports = function (db) {
   /** wrapper for stored procedure call */
@@ -17,53 +17,49 @@ module.exports = function (db) {
   }
 
   function getAccessToken (bearerToken) {
-    debug('getAccessToken', bearerToken)
     return storedQuery('oauth_access_tokens__read', bearerToken)
     .then((accessTokens) => {
       if (!accessTokens && !accessTokens.length) return null
       const accessToken = toJSON(accessTokens[0])
-      debug('accessToken %j', accessToken)
+      debug('accessToken', accessToken)
       return accessToken
     })
     .catch((err) => {
-      debug.error('getAccessToken %j', err)
+      debug.error(Object.assign({fn: 'getAccessToken'}, err))
       throwOnDbErr(err)
     })
   }
 
   function getRefreshToken (refreshToken) {
-    debug('getRefreshToken %s', refreshToken)
     if (!refreshToken || refreshToken === 'undefined') return null
 
     return storedQuery('oauth_refresh_tokens__read', refreshToken)
     .then((refreshTokens) => {
       if (!refreshTokens && !refreshTokens.length) return null
       const refreshToken = toJSON(refreshTokens[0])
-      debug('refreshToken %j', refreshToken)
+      debug('refreshToken', refreshToken)
       return refreshToken
     })
     .catch((err) => {
-      debug.error('getRefreshToken %j', err)
+      debug.error(Object.assign({fn: 'getRefreshToken'}, err))
       throwOnDbErr(err)
     })
   }
 
   function getAuthorizationCode (code) {
-    debug('getAuthorizationCode %s', code)
     return storedQuery('oauth_authorization_codes__read', code)
     .then((authCodes) => {
       if (!authCodes && !authCodes.length) return null
       const authCode = toJSON(authCodes[0])
-      debug('getAuthorizationCode %j', authCode)
+      debug('getAuthorizationCode', authCode)
       return authCode
     }).catch((err) => {
-      debug.error('getAuthorizationCode %j', err)
+      debug.error(Object.assign({fn: 'getAuthorizationCode'}, err))
       throwOnDbErr(err)
     })
   }
 
   function getClient (clientId, clientSecret) {
-    debug('getClient %s %s', clientId, clientSecret)
     return storedQuery('oauth_clients__read', clientId, clientSecret)
     .then((data) => {
       if (!data || !data.length) return null
@@ -75,10 +71,10 @@ module.exports = function (db) {
       delete client.redirectUri
       // grants are a comma separated list of grants here
       client.grants = toArray(client.grants)
-      debug('getClient %j', client)
+      debug('getClient', client)
       return client
     }).catch((err) => {
-      debug.error('getClient %j', err)
+      debug.error(Object.assign({fn: 'getClient', clientId}, err))
       throwOnDbErr(err)
     })
   }
@@ -89,22 +85,21 @@ module.exports = function (db) {
     .then((users) => {
       if (!users || !users.length) return null
       const user = users[0]
-      debug('getUser %j', user)
+      debug('getUser', user)
       _user = user
       return bcrypt.compare(password, user.password)
     })
     .then((bcryptRes) => {
-      debug('getUser bcrypt %s %s', username, bcryptRes)
+      debug('getUser bcrypt', username, bcryptRes)
       return bcryptRes ? _user : null
     })
     .catch((err) => {
-      debug.error('getUser %j', err)
+      debug.error(Object.assign({fn: 'getUser', username}, err))
       throwOnDbErr(err)
     })
   }
 
   function getUserFromClient (client) {
-    debug('getUserFromClient %j', client)
     return storedQuery('oauth_clients__users__read', client.clientId, client.clientSecret)
     .then((clients) => {
       if (!clients || !clients.length) return null
@@ -112,14 +107,17 @@ module.exports = function (db) {
       if (client.clientSecret && _client.clientSecret !== client.clientSecret) return null
       const user = _get(_client, 'user')
       return user
-    }).catch((err) => {
-      debug.error('getUserFromClient %j', err)
+    })
+    .catch((err) => {
+      debug.error(Object.assign({fn: 'getUserFromClient',
+        clientId: client.clientId
+      }, err))
       throwOnDbErr(err)
     })
   }
 
   function saveToken (token, client, user) {
-    debug('saveToken %j %j %j', token, client, user)
+    debug('saveToken', token, client, user)
     return Promise.all([
       storedQuery('oauth_access_tokens__create', token.accessToken, token.accessTokenExpiresAt, token.scope, client.id, user.id),
       token.refreshToken
@@ -134,13 +132,15 @@ module.exports = function (db) {
       }, token)
     })
     .catch((err) => {
-      debug.error('saveToken %j', err)
+      debug.error(Object.assign({fn: 'saveToken',
+        clientId: client.clientId
+      }, err))
       throwOnDbErr(err)
     })
   }
 
   function saveAuthorizationCode (code, client, user) {
-    debug('saveAuthorizationCode %s %j %j', code, client, user)
+    debug('saveAuthorizationCode', code, client, user)
     return storedQuery('oauth_authorization_codes__create',
       code.authorizationCode, code.expiresAt, code.redirectUri, code.scope,
       client.id, user.id
@@ -149,7 +149,10 @@ module.exports = function (db) {
       code.code = code.authorizationCode
       return code
     }).catch((err) => {
-      debug.error('saveAuthorizationCode %j', err)
+      debug.error(Object.assign({fn: 'saveAuthorizationCode',
+        clientId: client.clientId,
+        username: user.username
+      }, err))
       throwOnDbErr(err)
     })
   }
@@ -157,12 +160,12 @@ module.exports = function (db) {
   // exports
   return {
     getAccessToken,
-    getRefreshToken,
     getAuthorizationCode,
     getClient,
+    getRefreshToken,
     getUser,
     getUserFromClient,
-    saveToken,
-    saveAuthorizationCode
+    saveAuthorizationCode,
+    saveToken
   }
 }

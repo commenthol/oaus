@@ -11,7 +11,7 @@ const _get = require('lodash.get')
 const cookieParser = require('cookie-parser')
 const chain = require('connect-chain-if')
 const debug = require('debug')('oauth2__auth-mw')
-debug.error = require('debug')('oauth2__auth-mw::error')
+debug.error = require('debug')('oauth2__auth-mw::error').bind(undefined, '%j')
 
 const models = require('../models')
 const {
@@ -68,8 +68,10 @@ class oauth2Mw {
 
   authenticate (req, res, next) {
     this.oauthServer.authenticate(new Request(req), new Response(res))
-    .then((ret) => {
-      console.log(ret) // TODO
+    .then((data) => {
+      const {scope, user, client} = data
+      req.locals = Object.assign({scope, user, client}, req.locals)
+      debug('authenticate', req.locals)
       next()
     })
     .catch((err) => next(err))
@@ -78,7 +80,7 @@ class oauth2Mw {
   authorize (req, res, next) {
     this.oauthServer.authorize(new Request(req), new Response(res))
     .then((code) => {
-      res.locals = Object.assign({code}, res.locals)
+      req.locals = Object.assign({code}, req.locals)
       next()
     })
     .catch((err) => next(err))
@@ -86,7 +88,7 @@ class oauth2Mw {
 
   /**
   * sets last sign-in date of user in database
-  * requires `res.locals.locals.token.user` to be set to a valid userId of a previous
+  * requires `req.locals.locals.token.user` to be set to a valid userId of a previous
   * authentication (call `token()` first)
   */
   lastSignInAt (req, res, next) {
@@ -96,16 +98,21 @@ class oauth2Mw {
       next && next()
     })
     .catch((err) => {
-      debug.error('lastSignInAt %j', err)
       next && next(err)
     })
   }
 
   _authorizeResponse (req, res, next) {
-    const {code} = res.locals
+    const {code} = req.locals
     const url = redirectUri(
       code.redirectUri,
-      {code: code.code, state: _get(req, 'query.state')})
+      {code: code.code, state: _get(req, 'query.state')}
+    )
+    debug('%j', {
+      ip: req.ip,
+      fn: '_authorizeResponse',
+      redirect: code.redirectUri
+    })
     res.redirect(url)
   }
 
@@ -115,7 +122,14 @@ class oauth2Mw {
     if (err.name === 'invalid_token' && !_get(req, 'query._login')) {
       url = redirectUri('/login', {origin: req.originalUrl})
     } else {
-      debug.error('_authorizeError %j', err)
+      debug.error({
+        ip: req.ip,
+        fn: '_authorizeError',
+        error: err.message,
+        code: err.code,
+        status: err.status,
+        stack: err.stack
+      })
       url = redirectUri(
         _get(req, 'query.redirect_uri'),
         {error: err.name, state: _get(req, 'query.state')})
@@ -134,7 +148,7 @@ class oauth2Mw {
   }
 
   _tokenResponse (req, res, next) {
-    const {token} = res.locals
+    const {token} = req.locals
     const expiresIn = Math.round((token.accessTokenExpiresAt.getTime() - Date.now()) / 1000)
 
     const _token = {
@@ -149,6 +163,11 @@ class oauth2Mw {
       // TODO add scope here
     }
 
+    debug('%j', {
+      ip: req.ip,
+      fn: '_tokenResponse'
+    })
+
     res.setHeader('Cache-Control', 'no-store')
     res.setHeader('Pragma', 'no-cache')
     res.json(_token)
@@ -156,7 +175,13 @@ class oauth2Mw {
 
   _jsonError (err, req, res, next) {
     err = err || httpError(500, 'server_error')
-    debug.error('_jsonError %j', err)
+    debug.error({
+      ip: req.ip,
+      fn: '_jsonError',
+      error: err.message,
+      status: err.status,
+      stack: err.stack
+    })
     res.statusCode = err.status
     const body = noUndefined({
       error: err.name,
@@ -174,8 +199,6 @@ class oauth2Mw {
       if (cookieToken) {
         req.headers.authorization = `Bearer ${cookieToken}`
       } else {
-        // redirect to login
-        console.log('redirect') // TODO
         res.redirect('/login')
       }
     }

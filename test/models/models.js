@@ -487,11 +487,7 @@ describe('#models', function () {
         it('should set last login date in database', function () {
           return model.lastSignInAt(gUser)
           .then((res) => {
-            console.log(res)
-          })
-          .catch((err) => {
-            console.log(err)
-            assert.ok(false)
+            assert.ok(res)
           })
         })
       })
@@ -551,7 +547,7 @@ describe('#models', function () {
         })
       })
 
-      describe('revokeAllTokens', function () {
+      describe.skip('revokeAllTokens', function () {
         let token
         let user
 

@@ -1,11 +1,7 @@
 const http = require('http')
 const qs = require('querystring')
-const debugFn = require('debug')
 const csrfToken = require('./csrfToken')
 const cookie = require('./cookie')
-
-const debug = debugFn('oauth2-router')
-debug.error = debugFn('oauth2-router::error')
 
 const DELIMITER = ' '
 
@@ -64,10 +60,19 @@ function unwrapQuery (string) {
   return Buffer.from(string || '', 'base64').toString()
 }
 
+const promisify = (fn) =>
+  (...args) => (
+    new Promise((resolve, reject) => {
+      fn(...args, (err, ...res) => {
+        if (err) reject(err)
+        else resolve(...res)
+      })
+    })
+  )
+
 module.exports = {
   csrfToken,
   cookie,
-  debug,
   fromArray,
   toArray,
   objToArray,
@@ -77,5 +82,6 @@ module.exports = {
   logRequest,
   logResponse,
   wrapQuery,
-  unwrapQuery
+  unwrapQuery,
+  promisify
 }

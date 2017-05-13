@@ -18,7 +18,7 @@ const {
 const chain = require('connect-chain-if')
 const _get = require('lodash.get')
 const debug = require('debug')('oauth2__login-mw')
-debug.error = require('debug')('oauth2__login-mw::error')
+debug.error = require('debug')('oauth2__login-mw::error').bind(undefined, '%j')
 
 const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
 
@@ -35,11 +35,27 @@ const alerts = {
 }
 
 class LoginMw {
+  /*
+  * Connect middleware functions for login
+  * @param {Object} config
+  * @param {Object} config.oauth2mw - oauth2 middlewares
+  * @param {String} config.csrfTokenSecret - csrf token secret
+  * @param {String} [config.oauthPath='/oauth'] - default redirect uri to oauth2 service
+  * @param {String} config.login.clientId - oauth2 clientId for login App
+  * @param {String} config.login.clientSecret - oauth clientSecret
+  * @param {Object} [config.login.successUri='/'] - default redirect uri after successful login
+  */
   constructor (config) {
-    this.client = config.login          // {clientId, clientSecret}
+    this.client = config.login || {}    // {clientId, clientSecret}
     this.oauth2mw = config.oauth2mw     // {token}
     this.csrfTokenFn = csrfToken(config.csrfTokenSecret)
     this.oauthPath = config.oauthPath || '/oauth'
+
+    // validation
+    if (!this.oauth2mw) throw new Error('login needs config.oauth2mw')
+    if (!this.csrfTokenFn) throw new Error('login needs config.csrfTokenFn')
+    if (!this.client.clientId) throw new Error('login needs config.login.clientId')
+    if (!this.client.clientSecret) throw new Error('login needs config.login.clientSecret')
 
     ;[
       'getChain',
@@ -113,7 +129,6 @@ class LoginMw {
 
   setCookie (req, res, next) {
     const {token, isSecure} = req.locals
-    delete req.locals.token
 
     debug('setCookie', token)
     if (!token) {
@@ -138,7 +153,7 @@ class LoginMw {
       })
     }
 
-    let redirectUrl = '/' // TODO set default redirectUrl
+    let redirectUrl = _get(this.config, 'login.successUri', '/')
     let origin = url.parse(unescape(_get(req, 'body.origin', '')))
     if (origin.pathname) {
       let query = Object.assign(qs.parse(origin.query), {_login: 1})
@@ -171,7 +186,10 @@ class LoginMw {
         this.oauth2mw.token,
         this.setCookie,
         (err, req, res, next) => { // eslint-disable-line handle-callback-err
-          // debug.error(err)
+          debug('refreshCookie', {
+            ip: req.ip,
+            error: err.message
+          })
           next(httpError(200, 'session_expired'))
         }
       )(req, res, next)
@@ -181,18 +199,24 @@ class LoginMw {
   }
 
   error (err, req, res, next) {
-    debug.error('%j', err) // TODO log user, ip as well
+    debug.error({
+      ip: req.ip,
+      fn: 'error',
+      error: err.message,
+      status: err.status,
+      stack: err.stack
+    })
+
     res.status(err.status || 200)
     res.locals = Object.assign({}, res.locals, {alert: alerts[err.name || 'server_error']})
     this.render(req, res)
   }
 
   render (req, res) {
-    const {alert} = res.locals || {} // TODO
+    const {alert} = res.locals || {}
     res.render('layout/login', {
       title: 'Login',
       hidden: this._hiddenLogin(req),
-      // random: Math.random().toString(16).substr(2, 8),
       alert
     })
   }

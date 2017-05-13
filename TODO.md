@@ -5,13 +5,14 @@
 - [x] authenticate
 - [x] bug in stored procedure getClient
 - [x] users - lastSignInAt, lastSignOutAt
-- [ ] _logout_
 - [ ] client for complete flow
+- [ ] _logout_
 - [ ] scopes / model verifyScope, validateScope
 - [ ] review API
+- [ ] secure token
 - [ ] secure clientSecret (??)
 - [x] update mongoose model
-- [ ] logging ips, set trust-proxy
+- [x] set trust-proxy, logging ips
 - [ ] user registration
 - [ ] user settings
 - [ ] _login_ config set default redirect Uri
