@@ -24,6 +24,7 @@ mongorestore -d oauth2 --archive=/data/db/oauth2-test.mongo --gzip
 docker exec -it mongo bash
 
 mongodump -d oauth2 --archive=/data/db/oauth2-test.mongo --gzip
+exit
 
 cp scripts/docker/mongo/oauth2-test.mongo test/database
 ```

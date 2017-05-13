@@ -4,14 +4,17 @@
 - [x] /token, /authorize routing
 - [x] authenticate
 - [x] bug in stored procedure getClient
-- [ ] users - lastLoginAt 
-- [ ] scopes / model verifyScope, validateScope
+- [x] users - lastSignInAt, lastSignOutAt
+- [ ] _logout_
 - [ ] client for complete flow
-	- logout
+- [ ] scopes / model verifyScope, validateScope
 - [ ] review API
 - [ ] secure clientSecret (??)
-- [ ] token access, refresh, authcode deletion. Instant, cron?
-- [ ] delete with stored procedure. Performance?
 - [x] update mongoose model
+- [ ] logging ips, set trust-proxy
 - [ ] user registration
 - [ ] user settings
+- [ ] _login_ config set default redirect Uri
+- [ ] token access, refresh, authcode deletion. Instant, cron?
+- [ ] delete with stored procedure. Performance?
+- [ ] documentation

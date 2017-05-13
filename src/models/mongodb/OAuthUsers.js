@@ -5,8 +5,8 @@ const OAuthUserSchema = new Schema({
   username: {type: String, required: true, index: {unique: true}},
   password: {type: String, required: true},
   scope: {type: String},
-  lastLoginAt: {type: Date},
-  lastLogoutAt: {type: Date}
+  lastSignInAt: {type: Date},
+  lastSignOutAt: {type: Date}
 })
 
 module.exports = mongoose.model('OAuthUsers', OAuthUserSchema)

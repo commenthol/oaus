@@ -11,8 +11,8 @@ const {objectKeysType} = require('./helper')
 
 const config = {
   database: {   // database settings
-    // connector: 'mysql',
-    // url: 'mysql://dev:dev@localhost/oauth2',
+    connector: 'mysql',
+    url: 'mysql://dev:dev@localhost/oauth2',
     logging: false,
     storedProcedures: true
     // connector: 'mongodb',

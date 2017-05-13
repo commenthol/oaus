@@ -14,8 +14,8 @@ module.exports = function (config) {
   const router = new Router()
   const mws = new LoginMw(config)
 
-  router.get('/', mws.get())
-  router.post('/', mws.post())
+  router.get('/', mws.getChain())
+  router.post('/', mws.postChain())
 
   return router
 }

@@ -21,11 +21,11 @@ module.exports = function (sequelize, DataTypes) {
       type: DataTypes.STRING(255),
       allowNull: true
     },
-    lastLoginAt: {
+    lastSignInAt: {
       type: DataTypes.DATE,
       allowNull: true
     },
-    lastLogoutAt: {
+    lastSignOutAt: {
       type: DataTypes.DATE,
       allowNull: true
     },

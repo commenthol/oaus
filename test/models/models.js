@@ -182,8 +182,8 @@ describe('#models', function () {
                   _id: { _bsontype: 'String', id: 'Uint8Array' },
                   username: 'String',
                   scope: 'String',
-                  lastLoginAt: 'Date',
-                  lastLogoutAt: 'Date',
+                  lastSignInAt: 'Date',
+                  lastSignOutAt: 'Date',
                   createdAt: 'Date',
                   updatedAt: 'Date'
                 },
@@ -440,6 +440,8 @@ describe('#models', function () {
                 _id: { _bsontype: 'String', id: 'Uint8Array' },
                 username: 'String',
                 scope: 'Null',
+                lastSignInAt: 'Date',
+                lastSignOutAt: 'Date',
                 createdAt: 'Date',
                 updatedAt: 'Date'
               })
@@ -471,7 +473,7 @@ describe('#models', function () {
         })
       })
 
-      describe('lastLoginAt', function () {
+      describe('lastSignInAt', function () {
         let gUser
         before(() => {
           const {username, password} = users.user
@@ -483,9 +485,13 @@ describe('#models', function () {
         })
 
         it('should set last login date in database', function () {
-          return model.lastLoginAt(gUser)
+          return model.lastSignInAt(gUser)
           .then((res) => {
-            // console.log(res)
+            console.log(res)
+          })
+          .catch((err) => {
+            console.log(err)
+            assert.ok(false)
           })
         })
       })

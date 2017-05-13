@@ -41,13 +41,23 @@ class LoginMw {
     this.csrfTokenFn = csrfToken(config.csrfTokenSecret)
     this.oauthPath = config.oauthPath || '/oauth'
 
-    ;['get', 'post', 'verifyCsrfToken', 'verifyBody', 'setAuth', 'setCookie',
-      'refreshCookie', 'error', 'render']
+    ;[
+      'getChain',
+      'postChain',
+      'verifyCsrfToken',
+      'verifyBody',
+      'setAuth',
+      'setCookie',
+      'setLocals',
+      'refreshCookie',
+      'render',
+      'error'
+    ]
     .forEach((p) => (this[p] = this[p].bind(this)))
   }
 
   /** get middleware chain */
-  get () {
+  getChain () {
     return [
       cookieParser(),
       this.refreshCookie,
@@ -57,14 +67,15 @@ class LoginMw {
   }
 
   /** post middleware chain */
-  post () {
+  postChain () {
     return [
       bodyParser.urlencoded({extended: false}),
       this.verifyCsrfToken,
       this.verifyBody,
       this.setAuth,
+      this.setLocals,
       this.oauth2mw.token,
-      this.oauth2mw.lastLoginAt,
+      this.oauth2mw.lastSignInAt,
       this.setCookie,
       this.error
     ]
@@ -88,14 +99,21 @@ class LoginMw {
     next(err)
   }
 
+  setLocals (req, res, next) {
+    // ensure you run TLS on your site in production
+    const isSecure = !!(req.headers['x-ssl'] || req.protocol === 'https' || !isEnvDev)
+    req.locals = Object.assign({isSecure}, req.locals)
+    next()
+  }
+
   setAuth (req, res, next) {
     req.headers.authorization = basicAuthHeader(this.client)
     next()
   }
 
   setCookie (req, res, next) {
-    const {token} = res.locals
-    delete res.locals.token
+    const {token, isSecure} = req.locals
+    delete req.locals.token
 
     debug('setCookie', token)
     if (!token) {
@@ -109,14 +127,14 @@ class LoginMw {
       path: this.oauthPath,
       expires: token.accessTokenExpiresAt,
       httpOnly: true,
-      secure: !isEnvDev
+      secure: isSecure
     })
     if (token.refreshToken) {
       cookie.set(res, 'refresh', token.refreshToken, {
         path: trimUrl(req.originalUrl || '/'),
         expires: rememberMe ? token.refreshTokenExpiresAt : undefined,
         httpOnly: true,
-        secure: !isEnvDev
+        secure: isSecure
       })
     }
 
@@ -149,6 +167,7 @@ class LoginMw {
 
       chain(
         this.setAuth,
+        this.setLocals,
         this.oauth2mw.token,
         this.setCookie,
         (err, req, res, next) => { // eslint-disable-line handle-callback-err

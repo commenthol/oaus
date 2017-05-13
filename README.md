@@ -1,3 +1,11 @@
+
+## Running behind proxy or load-balancer
+
+If running behind a proxy or load-balancer which terminates the SSL connection
+this component should add a `X-SSL` header to the request to flag cookies `secure`.
+
+> TODO trusted IPs
+
 # Links
 
 - [rfc6749](https://tools.ietf.org/html/rfc6749)

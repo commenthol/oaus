@@ -35,14 +35,15 @@ class oauth2Mw {
     ;[
       'authenticate',
       'authorize',
-      'token',
       'authorizeChain',
+      'lastSignInAt',
+      'token',
       'tokenChain',
-      '_tokenResponse',
-      '_jsonError',
       '_accessTokenCookie',
+      '_authorizeError',
       '_authorizeResponse',
-      '_authorizeError'
+      '_jsonError',
+      '_tokenResponse'
     ]
     .forEach((p) => { this[p] = this[p].bind(this) })
   }
@@ -84,18 +85,18 @@ class oauth2Mw {
   }
 
   /**
-  * sets last login of user in database
+  * sets last sign-in date of user in database
   * requires `res.locals.locals.token.user` to be set to a valid userId of a previous
   * authentication (call `token()` first)
   */
-  lastLoginAt (req, res, next) {
-    const user = _get(res, 'locals.token.user')
-    console.log(user)
-    // return next()
-    this.model.lastLoginAt(user)
-    .then(() => { next && next() })
+  lastSignInAt (req, res, next) {
+    const user = _get(req, 'locals.token.user')
+    this.model.lastSignInAt(user)
+    .then(() => {
+      next && next()
+    })
     .catch((err) => {
-      debug.error('lastLoginAt %j', err)
+      debug.error('lastSignInAt %j', err)
       next && next(err)
     })
   }
@@ -126,7 +127,7 @@ class oauth2Mw {
     this.oauthServer.token(new Request(req), new Response(res))
     .then((token) => {
       if (!token || !token.accessToken) throw httpError(401, 'invalid_grant')
-      res.locals = Object.assign({token}, res.locals)
+      req.locals = Object.assign({token}, req.locals)
       next()
     })
     .catch((err) => next(err))

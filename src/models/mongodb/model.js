@@ -217,12 +217,12 @@ module.exports = function (db) {
   }
 
   function validateScope (user, client, scope) {
-    console.log('###validateScope', user, client, scope)
+    // console.log('###validateScope', user, client, scope)
     return 'undefined' // TODO add validation
   }
 
   function verifyScope (token, scope) {
-    console.log('###verifyScope', token, scope)
+    // console.log('###verifyScope', token, scope)
     return true // TODO add verification
   }
 
@@ -245,7 +245,7 @@ module.exports = function (db) {
         OAuthAuthorizationCodes.remove({userId: userId}), // TODO mighht not work
         OAuthRefreshTokens.remove({userId: userId}),
         OAuthAccessTokens.remove({userId: userId}),
-        lastLogoutAt({_id: userId})
+        lastSignOutAt({_id: userId})
       ])
     })
     .catch((err) => {
@@ -253,19 +253,19 @@ module.exports = function (db) {
     })
   }
 
-  function lastLoginAt (user, next) {
+  function lastSignInAt (user, next) {
     if (!user || !user._id) return
     return OAuthUsers.findOneAndUpdate(
       {_id: user._id},
-      {lastLoginAt: new Date()},
+      {lastSignInAt: new Date()},
       {upsert: true}
     )
   }
 
-  function lastLogoutAt (user) {
+  function lastSignOutAt (user) {
     return OAuthUsers.findOneAndUpdate(
       {_id: user._id},
-      {lastLogoutAt: new Date()},
+      {lastSignOutAt: new Date()},
       {upsert: true}
     )
   }
@@ -343,7 +343,7 @@ module.exports = function (db) {
     verifyScope,
     // ----
     revokeAllTokens,
-    lastLoginAt
+    lastSignInAt
   }
 }
 

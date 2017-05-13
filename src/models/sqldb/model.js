@@ -269,12 +269,12 @@ module.exports = function (db) {
   }
 
   function validateScope (user, client, scope) {
-    console.log('###validateScope', user, client, scope)
+    // console.log('###validateScope', user, client, scope)
     return 'undefined' // TODO add validation
   }
 
   function verifyScope (token, scope) {
-    console.log('###verifyScope', token, scope)
+    // console.log('###verifyScope', token, scope)
     return true // TODO add verification
   }
 
@@ -297,7 +297,7 @@ module.exports = function (db) {
         OAuthAuthorizationCodes.destroy({where: {userId: userId}}),
         OAuthRefreshTokens.destroy({where: {userId: userId}}),
         OAuthAccessTokens.destroy({where: {userId: userId}}),
-        lastLogoutAt({id: userId})
+        lastSignOutAt({id: userId})
       ])
     })
     .catch((err) => {
@@ -306,17 +306,17 @@ module.exports = function (db) {
     })
   }
 
-  function lastLoginAt (user) {
+  function lastSignInAt (user) {
     if (!user || !user.id) return
     return OAuthUsers.update(
-      {lastLoginAt: new Date()},
+      {lastSignInAt: new Date()},
       {where: {id: user.id}}
     )
   }
 
-  function lastLogoutAt (user) {
+  function lastSignOutAt (user) {
     return OAuthUsers.update(
-      {lastLogoutAt: new Date()},
+      {lastSignOutAt: new Date()},
       {where: {id: user.id}}
     )
   }
@@ -337,7 +337,7 @@ module.exports = function (db) {
     verifyScope,
     // ----
     revokeAllTokens,
-    lastLoginAt
+    lastSignInAt
   }
 }
 
