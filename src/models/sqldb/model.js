@@ -1,11 +1,13 @@
+/**
+* model for SQL based databases
+*/
+
 const bcrypt = require('bcrypt')
 const _get = require('lodash.get')
-const {toArray} = require('../../utils')
-const {throwOnDbErr} = require('./storedProc')
-const {generateSignedToken} = require('../common')
+const {signedToken, toArray} = require('../../utils')
 
-const debug = require('debug')('oauth2__model')
-debug.error = require('debug')('oauth2__model::error').bind(undefined, '%j')
+const debug = require('debug')('oaus__model')
+debug.error = require('debug')('oaus__model::error').bind(undefined, '%j')
 
 /**
 * @param {Object} db - database instance
@@ -20,80 +22,89 @@ module.exports = function (db, secret) {
     OAuthRefreshTokens
   } = db
 
-  const generateSignedTokenFn = generateSignedToken(secret)
+  const signedTokenFn = signedToken(secret)
 
   /* === === */
 
   function generateAccessToken (client, user, scope) {
-    return generateSignedTokenFn(client, user, scope)
+    return signedTokenFn.generate({client: client, user: user, scope: scope})
   }
 
   function generateRefreshToken (client, user, scope) {
-    return generateSignedTokenFn(client, user, scope)
+    return signedTokenFn.generate({client: client, user: user, scope: scope})
   }
 
   function generateAuthorizationCode () {
-    return generateSignedTokenFn()
+    return signedTokenFn.generate()
   }
 
   /* === models required by oauth2-server === */
 
   function getAccessToken (bearerToken) {
-    return OAuthAccessTokens
-    .findOne({
-      where: {accessToken: bearerToken},
-      attributes: ['id', 'accessToken', ['expiresAt', 'accessTokenExpiresAt'], 'scope'],
-      include: [{
-        model: OAuthUsers,
-        attributes: ['id', 'username', 'scope']
-      }, {
-        model: OAuthClients,
-        attributes: ['id', 'clientId', 'scope']
-      }]
+    return signedTokenFn.validate(bearerToken)
+    .then((bearerToken) => {
+      if (!bearerToken) return null
+      return OAuthAccessTokens
+      .findOne({
+        where: {accessToken: bearerToken},
+        attributes: ['id', 'accessToken', ['expiresAt', 'accessTokenExpiresAt'], 'scope'],
+        include: [{
+          model: OAuthUsers,
+          attributes: ['id', 'username', 'scope']
+        }, {
+          model: OAuthClients,
+          attributes: ['id', 'clientId', 'scope']
+        }]
+      })
     })
-    .then((pAccessToken) => {
-      if (!pAccessToken) return null
-      const token = pAccessToken.toJSON()
+    .then((accessToken) => {
+      if (!accessToken) return null
+      const token = accessToken.toJSON()
       assignClientUser(token)
       debug('accessToken', token)
       return token
     })
     .catch((err) => {
       debug.error(Object.assign({fn: 'getAccessToken'}, err))
-      throwOnDbErr(err)
     })
   }
 
   function getRefreshToken (refreshToken) {
     if (!refreshToken || refreshToken === 'undefined') return null
 
-    return OAuthRefreshTokens
-    .findOne({
-      where: {refreshToken: refreshToken},
-      attributes: ['id', 'refreshToken', ['expiresAt', 'refreshTokenExpiresAt'], 'scope'],
-      include: [{
-        model: OAuthUsers,
-        attributes: ['id', 'username', 'scope']
-      }, {
-        model: OAuthClients,
-        attributes: ['id', 'clientId', 'scope']
-      }]
+    return signedTokenFn.validate(refreshToken)
+    .then((refreshToken) => {
+      if (!refreshToken) return null
+      return OAuthRefreshTokens
+      .findOne({
+        where: {refreshToken: refreshToken},
+        attributes: ['id', 'refreshToken', ['expiresAt', 'refreshTokenExpiresAt'], 'scope'],
+        include: [{
+          model: OAuthUsers,
+          attributes: ['id', 'username', 'scope']
+        }, {
+          model: OAuthClients,
+          attributes: ['id', 'clientId', 'scope']
+        }]
+      })
     })
-    .then(function (pRefreshToken) {
-      if (!pRefreshToken) return null
-      const token = pRefreshToken.toJSON()
+    .then((refreshToken) => {
+      if (!refreshToken) return null
+      const token = refreshToken.toJSON()
       assignClientUser(token)
       debug('refreshToken', token)
       return token
     })
     .catch((err) => {
       debug.error(Object.assign({fn: 'getRefreshToken'}, err))
-      throwOnDbErr(err)
     })
   }
 
   function getAuthorizationCode (code) {
-    return OAuthAuthorizationCodes
+    return signedTokenFn.validate(code)
+    .then((code) => {
+      if (!code) return null
+      return OAuthAuthorizationCodes
       .findOne({
         attributes: ['id', 'authorizationCode', 'expiresAt', 'redirectUri', 'scope'],
         where: {authorizationCode: code},
@@ -105,16 +116,17 @@ module.exports = function (db, secret) {
           attributes: ['id', 'clientId', 'scope']
         }]
       })
-      .then((pAuthCode) => {
-        if (!pAuthCode) return null
-        const code = pAuthCode.toJSON()
-        assignClientUser(code)
-        debug('authorizationCode', code)
-        return code
-      }).catch((err) => {
-        debug.error(Object.assign({fn: 'getAuthorizationCode'}, err))
-        throwOnDbErr(err)
-      })
+    })
+    .then((authCode) => {
+      if (!authCode) return null
+      const code = authCode.toJSON()
+      assignClientUser(code)
+      debug('authorizationCode', code)
+      return code
+    })
+    .catch((err) => {
+      debug.error(Object.assign({fn: 'getAuthorizationCode'}, err))
+    })
   }
 
   function getClient (clientId, clientSecret) {
@@ -142,30 +154,24 @@ module.exports = function (db, secret) {
       return client
     }).catch((err) => {
       debug.error(Object.assign({fn: 'getClient', clientId}, err))
-      throwOnDbErr(err)
     })
   }
 
   function getUser (username, password) {
-    let _user = null
     return OAuthUsers
     .findOne({
       where: {username: username},
       attributes: ['id', 'username', 'password', 'scope']
     })
     .then((user) => {
-      debug('getUser', user)
       if (!user) return null
-      _user = user
+      user = user.toJSON()
+      debug('getUser', user)
       return bcrypt.compare(password, user.password)
-    })
-    .then((bcryptRes) => {
-      debug('getUser bcrypt', username, bcryptRes)
-      return bcryptRes ? _user.toJSON() : null
+      .then((isValid) => (isValid ? user : null))
     })
     .catch((err) => {
       debug.error(Object.assign({fn: 'getUser', username}, err))
-      throwOnDbErr(err)
     })
   }
 
@@ -193,7 +199,6 @@ module.exports = function (db, secret) {
         fn: 'getUserFromClient',
         clientId: client.clientId
       }, err))
-      throwOnDbErr(err)
     })
   }
 
@@ -228,7 +233,6 @@ module.exports = function (db, secret) {
         fn: 'saveToken',
         clientId: client.clientId
       }, err))
-      throwOnDbErr(err)
     })
   }
 
@@ -253,7 +257,6 @@ module.exports = function (db, secret) {
         clientId: client.clientId,
         username: user.username
       }, err))
-      throwOnDbErr(err)
     })
   }
 
@@ -270,7 +273,6 @@ module.exports = function (db, secret) {
       return code
     }).catch((err) => {
       debug.error(Object.assign({fn: 'revokeAuthorizationCode'}, err))
-      throwOnDbErr(err)
     })
   }
 
@@ -287,7 +289,6 @@ module.exports = function (db, secret) {
       return token
     }).catch((err) => {
       debug.error(Object.assign({fn: 'revokeToken'}, err))
-      throwOnDbErr(err)
     })
   }
 
@@ -308,7 +309,6 @@ module.exports = function (db, secret) {
   * @param {String} bearerToken
   */
   function revokeAllTokens (bearerToken) {
-    debug('revokeAllTokens bearerToken', bearerToken)
     return getAccessToken(bearerToken) // find user by bearerToken
     .then((accessToken) => {
       const userId = _get(accessToken, 'user.id')
@@ -325,7 +325,6 @@ module.exports = function (db, secret) {
     })
     .catch((err) => {
       debug.error(Object.assign({fn: 'revokeAllTokens'}, err))
-      throwOnDbErr(err)
     })
   }
 

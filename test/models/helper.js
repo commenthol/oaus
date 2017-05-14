@@ -31,13 +31,12 @@ const getUserClient = (model, user, client) => {
   ])
 }
 
-const timeout = (timeout) => {
-  return new Promise((resolve) => {
+const timeout = (timeout) =>
+  new Promise((resolve) => {
     setTimeout(() => {
       resolve()
     }, timeout)
   })
-}
 
 module.exports = {
   accessToken,

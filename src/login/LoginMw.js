@@ -17,8 +17,8 @@ const {
 } = require('../utils')
 const chain = require('connect-chain-if')
 const _get = require('lodash.get')
-const debug = require('debug')('oauth2__login-mw')
-debug.error = require('debug')('oauth2__login-mw::error').bind(undefined, '%j')
+const debug = require('debug')('oaus__login-mw')
+debug.error = require('debug')('oaus__login-mw::error').bind(undefined, '%j')
 
 const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
 

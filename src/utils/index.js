@@ -2,6 +2,8 @@ const http = require('http')
 const qs = require('querystring')
 const csrfToken = require('./csrfToken')
 const cookie = require('./cookie')
+const signedToken = require('./signedToken')
+const promisify = require('./promisify')
 
 const DELIMITER = ' '
 
@@ -60,16 +62,6 @@ function unwrapQuery (string) {
   return Buffer.from(string || '', 'base64').toString()
 }
 
-const promisify = (fn) =>
-  (...args) => (
-    new Promise((resolve, reject) => {
-      fn(...args, (err, ...res) => {
-        if (err) reject(err)
-        else resolve(...res)
-      })
-    })
-  )
-
 module.exports = {
   csrfToken,
   cookie,
@@ -83,5 +75,6 @@ module.exports = {
   logResponse,
   wrapQuery,
   unwrapQuery,
-  promisify
+  promisify,
+  signedToken
 }

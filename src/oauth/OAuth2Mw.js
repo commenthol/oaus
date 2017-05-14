@@ -10,8 +10,8 @@ const _get = require('lodash.get')
 // const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const chain = require('connect-chain-if')
-const debug = require('debug')('oauth2__auth-mw')
-debug.error = require('debug')('oauth2__auth-mw::error').bind(undefined, '%j')
+const debug = require('debug')('oaus__auth-mw')
+debug.error = require('debug')('oaus__auth-mw::error').bind(undefined, '%j')
 
 const models = require('../models')
 const {

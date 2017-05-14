@@ -68,7 +68,7 @@ exports.connect = function connect (config) {
 
   const model = require('./model')(db, config.secret)
   if (storedProcedures) {
-    Object.assign(model, require('./model-procedures')(db))
+    Object.assign(model, require('./model-procedures')(db, config.secret))
   }
 
   return {db, model}

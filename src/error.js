@@ -1,7 +1,7 @@
 const {httpError} = require('./utils')
 
-const debug = require('debug')('oauth2__error')
-debug.error = require('debug')('oauth2__error::error').bind(undefined, '%j')
+const debug = require('debug')('oaus__error')
+debug.error = require('debug')('oaus__error::error').bind(undefined, '%j')
 
 /**
 * @param {Object} app - express app or router

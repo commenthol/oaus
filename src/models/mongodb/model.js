@@ -1,10 +1,13 @@
+/**
+* model for mongodb
+*/
+
 const bcrypt = require('bcrypt')
 const _get = require('lodash.get')
-const {generateSignedToken} = require('../common')
-const {httpError} = require('../../utils')
+const {signedToken} = require('../../utils')
 
-const debug = require('debug')('oauth2__model')
-debug.error = require('debug')('oauth2__model::error').bind(undefined, '%j')
+const debug = require('debug')('oaus__model')
+debug.error = require('debug')('oaus__model::error').bind(undefined, '%j')
 
 /**
 * @param {Object} db - database instance
@@ -18,36 +21,40 @@ module.exports = function (db, secret) {
     OAuthRefreshTokens
   } = db
 
-  const generateSignedTokenFn = generateSignedToken(secret)
+  const signedTokenFn = signedToken(secret)
 
   /* === === */
 
   function generateAccessToken (client, user, scope) {
-    return generateSignedTokenFn(client, user, scope)
+    return signedTokenFn.generate({client: client, user: user, scope: scope})
   }
 
   function generateRefreshToken (client, user, scope) {
-    return generateSignedTokenFn(client, user, scope)
+    return signedTokenFn.generate({client: client, user: user, scope: scope})
   }
 
   function generateAuthorizationCode () {
-    return generateSignedTokenFn()
+    return signedTokenFn.generate()
   }
 
   /* === models required by oauth2-server === */
 
   function getAccessToken (bearerToken) {
-    return OAuthAccessTokens
-    .findOne({accessToken: bearerToken})
-    .populate('userId')
-    .populate('oauthClientId')
-    .then((token) => {
-      debug('accessToken', token)
-      if (!token) return null
-      token = token.toJSON()
+    return signedTokenFn.validate(bearerToken)
+    .then((bearerToken) => {
+      if (!bearerToken) return null
+      return OAuthAccessTokens
+      .findOne({accessToken: bearerToken})
+      .populate('userId')
+      .populate('oauthClientId')
+    })
+    .then((accessToken) => {
+      if (!accessToken) return null
+      const token = accessToken.toJSON()
       assignClientUser(token)
       token.accessTokenExpiresAt = token.expiresAt
       delete token.expiresAt
+      debug('accessToken', token)
       return token
     })
     .catch((err) => {
@@ -56,15 +63,19 @@ module.exports = function (db, secret) {
   }
 
   function getRefreshToken (refreshToken) {
-    if (!refreshToken || refreshToken === 'undefined') return false
+    if (!refreshToken || refreshToken === 'undefined') return null
 
-    return OAuthRefreshTokens
-    .findOne({refreshToken: refreshToken})
-    .populate('userId')
-    .populate('oauthClientId')
-    .then((token) => {
-      if (!token) return null
-      token = token.toJSON()
+    return signedTokenFn.validate(refreshToken)
+    .then((refreshToken) => {
+      if (!refreshToken) return null
+      return OAuthRefreshTokens
+      .findOne({refreshToken: refreshToken})
+      .populate('userId')
+      .populate('oauthClientId')
+    })
+    .then((refreshToken) => {
+      if (!refreshToken) return null
+      const token = refreshToken.toJSON()
       assignClientUser(token)
       token.refreshTokenExpiresAt = token.expiresAt
       delete token.expiresAt
@@ -77,23 +88,27 @@ module.exports = function (db, secret) {
   }
 
   function getAuthorizationCode (code) {
-    return OAuthAuthorizationCodes
-    .findOne({authorizationCode: code})
-    .populate('userId')
-    .populate('oauthClientId')
+    return signedTokenFn.validate(code)
     .then((code) => {
       if (!code) return null
-      code = code.toJSON()
+      return OAuthAuthorizationCodes
+      .findOne({authorizationCode: code})
+      .populate('userId')
+      .populate('oauthClientId')
+    })
+    .then((authCode) => {
+      if (!authCode) return null
+      const code = authCode.toJSON()
       assignClientUser(code)
       debug('authorizationCode', code)
       return code
-    }).catch((err) => {
+    })
+    .catch((err) => {
       debug.error(Object.assign({fn: 'getAuthorizationCode'}, err))
     })
   }
 
   function getClient (clientId, clientSecret) {
-    debug('getClient', clientId, clientSecret)
     const options = {clientId: clientId}
     if (clientSecret) options.clientSecret = clientSecret
 
@@ -110,23 +125,16 @@ module.exports = function (db, secret) {
   }
 
   function getUser (username, password) {
-    let _user = null
     return OAuthUsers
     .findOne({username: username})
     .then((user) => {
-      debug('getUser', user)
       if (!user) return null
-      _user = user
-      return bcrypt.compare(password, user.password)
-    })
-    .then((bcryptRes) => {
-      debug('getUser bcrypt', username, bcryptRes)
-      if (bcryptRes) {
-        const user = _user.toJSON()
-        delete user.password
-        return user
-      }
-      return null
+      user = user.toJSON()
+      const userPassword = user.password
+      delete user.password
+      debug('getUser', user)
+      return bcrypt.compare(password, userPassword)
+      .then((isValid) => (isValid ? user : null))
     })
     .catch((err) => {
       debug.error(Object.assign({fn: 'getUser', username}, err))
@@ -134,7 +142,6 @@ module.exports = function (db, secret) {
   }
 
   function getUserFromClient (client) {
-    debug('getUserFromClient', client)
     const options = {clientId: client.clientId}
     if (client.clientSecret) options.clientSecret = client.clientSecret
 
@@ -218,8 +225,7 @@ module.exports = function (db, secret) {
     debug('revokeAuthorizationCode', code)
     return OAuthAuthorizationCodes.deleteOne({
       authorizationCode: code.code
-    }).then((authCode) => {
-      // if (authCode) authCode.destroy()
+    }).then(() => {
       // expire the code
       code.expiresAt = new Date(0)
       return code
@@ -232,8 +238,7 @@ module.exports = function (db, secret) {
     debug('revokeToken', token)
     return OAuthRefreshTokens.deleteOne({
       refreshToken: token.refreshToken
-    }).then((refreshToken) => {
-      // if (refreshToken) refreshToken.destroy()
+    }).then(() => {
       // expire the token
       token.refreshTokenExpiresAt = new Date(0)
       return token
@@ -263,11 +268,11 @@ module.exports = function (db, secret) {
     .then((accessToken) => {
       const userId = _get(accessToken, 'user._id')
       if (!accessToken || !userId) {
-        throw httpError(401, 'no accessToken or userId found')
+        throw new Error('no accessToken or userId found')
       }
       debug('revokeAllTokens accessToken', accessToken)
       return Promise.all([
-        OAuthAuthorizationCodes.remove({userId: userId}), // TODO mighht not work
+        OAuthAuthorizationCodes.remove({userId: userId}),
         OAuthRefreshTokens.remove({userId: userId}),
         OAuthAccessTokens.remove({userId: userId}),
         lastSignOutAt({_id: userId})

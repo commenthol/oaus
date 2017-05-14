@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
-const debug = require('debug')('oauth2__model-mongo')
-debug.error = require('debug')('oauth2__model-mongo::error').bind(undefined, '%j')
+const debug = require('debug')('oaus__model-mongo')
+debug.error = require('debug')('oaus__model-mongo::error').bind(undefined, '%j')
 
 mongoose.Promise = global.Promise
 
@@ -8,6 +8,7 @@ mongoose.Promise = global.Promise
 * Connect to mongo database
 * @param {Object} config - configuration
 * @param {String} config.url - mongodb url
+* @param {String} config.secret - secret for signed tokens
 * @return {Object} db object
 */
 exports.connect = function connect (config) {

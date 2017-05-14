@@ -7,6 +7,7 @@ module.exports = setup
 
 const defaultConfig = {
   database: {
+    secret: 'NEVER CHANGE SECRETS', // secret to valiate tokens
     connector: 'mysql',
     url: 'mysql://dev:dev@localhost/oauth2'
     // connector: 'mongodb',

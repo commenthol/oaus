@@ -1,4 +1,6 @@
+/* eslint no-console: 1 */
 /* global describe, it, before, after */
+
 const assert = require('assert')
 const _ = require('lodash')
 const {
@@ -12,18 +14,20 @@ const {
   objectKeysType
 } = require('../helper')
 
-const models = require('../../src/models')
+const {models} = require('../..')
 
 const config = {
   mongodb: {
     connector: 'mongodb',
-    url: 'mongodb://localhost/oauth2'
+    url: 'mongodb://localhost/oauth2',
+    secret: 'a secret value'
   },
   mysql: {
     connector: 'mysql',
     url: 'mysql://dev:dev@localhost/oauth2',
     logging: false,
-    storedProcedures: true
+    storedProcedures: true,
+    secret: 'a secret value'
   }
 }
 
@@ -260,9 +264,10 @@ describe('#models', function () {
           .then((res) => {
             user = res[0]
             client = res[1]
-          }).then(() => {
-            const atValue = 'at' + Date.now()
-            token = accessToken(atValue, 60)
+            return model.generateAccessToken(client, user)
+          })
+          .then((value) => {
+            token = accessToken(value, 60)
             return model.saveToken(token, client, user)
           })
         })
@@ -308,10 +313,13 @@ describe('#models', function () {
           .then((res) => {
             user = res[0]
             client = res[1]
-          }).then(() => {
-            const atValue = 'at' + Date.now()
+            return Promise.all([
+              model.generateAccessToken(client, user),
+              model.generateRefreshToken(client, user)
+            ])
+          })
+          .then(([atValue, rtValue]) => {
             token = accessToken(atValue, 60)
-            const rtValue = 'rt' + Date.now()
             Object.assign(token, refreshToken(rtValue, 60))
             return model.saveToken(token, client, user)
           })
@@ -391,7 +399,9 @@ describe('#models', function () {
           .then((res) => {
             user = res[0]
             client = res[1]
-            const value = 'ac' + Date.now()
+            return model.generateAuthorizationCode()
+          })
+          .then((value) => {
             code = authorizationCode(value, 60, '/cb')
             return model.saveAuthorizationCode(code, client, user)
           })
@@ -547,23 +557,30 @@ describe('#models', function () {
         })
       })
 
-      describe.skip('revokeAllTokens', function () {
+      describe('revokeAllTokens', function () {
         let token
         let user
 
         before(function () {
-          return getUserClient(model, users.user, clients.demo).then((res) => {
+          return getUserClient(model, users.user, clients.demo)
+          .then((res) => {
             user = res[0]
             const client = res[1]
-            const value = 'revokeAll' + Date.now()
-            token = accessToken(value, 60)
-            Object.assign(token, refreshToken(value, 60))
-            const code = authorizationCode(value, 60, '/cb')
             return Promise.all([
-              model.saveAuthorizationCode(code, client, user),
-              model.saveToken(token, client, user)
-            ]).then(() => {
-              return timeout(100)
+              model.generateAccessToken(),
+              model.generateRefreshToken(),
+              model.generateAuthorizationCode()
+            ])
+            .then(([atVal, rtVal, acVal]) => {
+              token = accessToken(atVal, 60)
+              Object.assign(token, refreshToken(rtVal, 60))
+              const code = authorizationCode(acVal, 60, '/cb')
+              return Promise.all([
+                model.saveAuthorizationCode(code, client, user),
+                model.saveToken(token, client, user)
+              ]).then(() => {
+                return timeout(100)
+              })
             })
           })
         })
