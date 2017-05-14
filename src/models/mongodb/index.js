@@ -12,16 +12,20 @@ mongoose.Promise = global.Promise
 * @return {Object} db object
 */
 exports.connect = function connect (config) {
-  mongoose.connect(config.url, config, function (err) {
+  mongoose.connect(config.url, config, (err) => {
     if (err) {
       debug.error({
         error: err.message,
         stack: err.stack
       })
+      if (!/Trying to open unclosed connection/.test(err.message)) {
+        throw err
+      }
       return
     }
     debug('mongoose connected')
   })
+  .catch(() => {})
 
   var db = {
     OAuthAccessTokens: require('./OAuthAccessTokens'),

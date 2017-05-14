@@ -117,7 +117,7 @@ describe('#models', function () {
             assert.strictEqual(client.name, 'demoName')
             assert.strictEqual(client.clientId, 'demo')
             assert.deepEqual(client.grants, ['authorization_code', 'password', 'refresh_token', 'client_credentials'])
-            assert.deepEqual(client.redirectUris, ['http://localhost:3000/cb', 'http://localhost:3000/cb1'])
+            assert.deepEqual(client.redirectUris, ['http://localhost:3000/auth/callback', 'http://localhost:3000/callback1'])
           })
         })
 
@@ -129,7 +129,7 @@ describe('#models', function () {
             assert.strictEqual(client.name, 'clientName')
             assert.strictEqual(client.clientId, 'client')
             assert.deepEqual(client.grants, ['authorization_code', 'password', 'refresh_token', 'client_credentials'])
-            assert.deepEqual(client.redirectUris, ['/cb2'])
+            assert.deepEqual(client.redirectUris, ['/callback'])
           })
         })
 

@@ -7,7 +7,6 @@ const cookieParser = require('cookie-parser')
 const url = require('url')
 const qs = require('querystring')
 const {
-  // logRequest,
   objToArray,
   trimUrl,
   httpError,
@@ -160,6 +159,7 @@ class LoginMw {
       origin.search = '?' + qs.stringify(query)
       redirectUrl = url.format(origin)
     }
+    // debug('setCookie redirectUrl', redirectUrl)
     res.redirect(redirectUrl)
   }
 

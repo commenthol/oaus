@@ -1,5 +1,6 @@
-const express = require('express')
 const {resolve} = require('path')
+const express = require('express')
+const morgan = require('morgan')
 const _merge = require('lodash.merge')
 const oauth2 = require('..')
 
@@ -7,13 +8,14 @@ module.exports = setup
 
 const defaultConfig = {
   database: {
-    secret: 'NEVER CHANGE SECRETS', // secret to valiate tokens
+    secret: 'keyboard cat', // secret to valiate tokens
     connector: 'mysql',
-    url: 'mysql://dev:dev@localhost/oauth2'
+    url: 'mysql://dev:dev@localhost/oauth2',
+    logging: false
     // connector: 'mongodb',
     // url: 'mongodb://localhost/oauth2'
   },
-  csrfTokenSecret: 'NEVER CHANGE SECRETS',
+  csrfTokenSecret: 'keyboard cat',
   oauth2: {     // oauth2-server settings
     alwaysIssueNewRefreshToken: false // each refresh_token grant does not write new refresh_token
   },
@@ -31,6 +33,7 @@ function setup (pConfig) {
   config.oauth2mw = oauth2mw
 
   app.set('trust proxy', 'loopback, linklocal, uniquelocal')
+  app.use(morgan('combined'))
   app.use(express.static(resolve(__dirname, '../public')))
 
   oauth2.views(app) // set hbs views
@@ -47,8 +50,12 @@ function setup (pConfig) {
   return app
 }
 
-if (module === require.main) {
-  setup().listen(4000, () => {
-    console.log('OAuth2 Server started on :4000')
+function main (port) {
+  setup().listen(port, () => {
+    console.log(`OAuth2 Server started on :${port}`)
   })
+}
+
+if (module === require.main) {
+  main(4000)
 }

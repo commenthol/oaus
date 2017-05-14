@@ -6,7 +6,10 @@
   "main": "src",
   "scripts": {
     "test": "mocha",
-    "lint": "eslint --fix 'src/**/*.js'"
+    "lint": "eslint --fix 'src/**/*.js'",
+    "ux": "nodemon -i scripts/docker scripts/app-ux.js",
+    "server": "DEBUG=oaus* nodemon -i scripts/docker example/app.js",
+    "client": "node example/client/app.js"
   },
   "author": "",
   "license": "MIT",
@@ -39,10 +42,14 @@
     "eslint-plugin-react": "^6.10.3",
     "eslint-plugin-standard": "^3.0.1",
     "express": "^4.15.2",
+    "express-session": "^1.15.2",
     "lodash": "^4.17.4",
     "mocha": "^3.3.0",
     "mongoose": "^4.9.6",
+    "morgan": "^1.8.1",
     "mysql": "^2.13.0",
+    "passport": "^0.3.2",
+    "passport-oauth2": "^1.4.0",
     "set-cookie-parser": "^2.0.0",
     "supertest": "^3.0.0"
   },

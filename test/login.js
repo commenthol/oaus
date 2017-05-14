@@ -6,25 +6,9 @@ const setCookie = require('set-cookie-parser')
 const cheerio = require('cheerio')
 
 const {utils} = require('..')
-
 const {objectKeysType} = require('./helper')
 
-const config = {
-  database: {   // database settings
-    connector: 'mysql',
-    url: 'mysql://dev:dev@localhost/oauth2',
-    logging: false,
-    storedProcedures: true
-    // connector: 'mongodb',
-    // url: 'mongodb://localhost/oauth2'
-  },
-  csrfTokenSecret: 'NEVER CHANGE SECRETS',
-  login: {
-    clientId: 'login',
-    clientSecret: 'loginsecret'
-  }
-}
-
+const config = require('./config')
 const app = require('../example/app')(config)
 
 describe('#login', function () {

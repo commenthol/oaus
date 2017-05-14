@@ -9,13 +9,13 @@
 - [ ] _logout_
 - [ ] scopes / model verifyScope, validateScope
 - [ ] review API
-- [ ] secure token
+- [ ] secure token - WIP refreshtoken
+- [ ] revoketoken check
 - [ ] secure clientSecret (??)
 - [x] update mongoose model
 - [x] set trust-proxy, logging ips
 - [ ] user registration
 - [ ] user settings
 - [ ] _login_ config set default redirect Uri
-- [ ] token access, refresh, authcode deletion. Instant, cron?
 - [ ] delete with stored procedure. Performance?
 - [ ] documentation

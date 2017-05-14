@@ -81,6 +81,7 @@ class oauth2Mw {
     this.oauthServer.authorize(new Request(req), new Response(res))
     .then((code) => {
       req.locals = Object.assign({code}, req.locals)
+      debug('authorize', req.locals)
       next()
     })
     .catch((err) => next(err))
@@ -131,8 +132,11 @@ class oauth2Mw {
         stack: err.stack
       })
       url = redirectUri(
-        _get(req, 'query.redirect_uri'),
-        {error: err.name, state: _get(req, 'query.state')})
+        _get(req, 'query.redirect_uri'), {
+          error: err.name,
+          state: _get(req, 'query.state'),
+          error_description: err.message
+        })
     }
     res.redirect(url)
   }
@@ -199,7 +203,12 @@ class oauth2Mw {
       if (cookieToken) {
         req.headers.authorization = `Bearer ${cookieToken}`
       } else {
-        res.redirect('/login')
+        let url = redirectUri(
+          '/login', // TODO make configurable
+          {origin: req.originalUrl}
+        )
+        res.redirect(url)
+        return
       }
     }
     next()
@@ -238,8 +247,7 @@ function noUndefined (obj) {
 * compose redirect url
 * @private
 */
-function redirectUri (uri, obj) {
-  uri = uri || '/'
+function redirectUri (uri = '/', obj) {
   obj = noUndefined(obj)
   if (obj) {
     uri += '?' + qs.stringify(obj)

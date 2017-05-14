@@ -6,25 +6,7 @@ const qs = require('querystring')
 const url = require('url')
 // const setCookie = require('set-cookie-parser')
 
-const config = {
-  database: {   // database settings
-    // connector: 'mysql',
-    // url: 'mysql://dev:dev@localhost/oauth2',
-    logging: false,
-    storedProcedures: true
-    // connector: 'mongodb',
-    // url: 'mongodb://localhost/oauth2'
-  },
-  csrfTokenSecret: 'NEVER CHANGE SECRETS',
-  oauth2: {     // oauth2-server settings
-    alwaysIssueNewRefreshToken: false, // each refresh_token grant does not write new refresh_token
-    allowEmptyState: true
-  },
-  login: {
-    clientId: 'login',
-    clientSecret: 'loginsecret'
-  }
-}
+const config = require('./config')
 
 const app = require('../example/app')(config)
 
@@ -188,10 +170,10 @@ describe('#oauth', function () {
       .query({
         response_type: 'code',
         client_id: 'demo',
-        redirect_uri: 'http://localhost:3000/cb'
+        redirect_uri: 'http://localhost:3000/auth/callback'
       })
       .expect(302)
-      .expect('Location', /^http:\/\/localhost:3000\/cb\?code=[^&]{20,}$/)
+      .expect('Location', /^http:\/\/localhost:3000\/auth\/callback\?code=[^&]{20,}$/)
       .expect((res) => {
         let u = url.parse(res.headers.location)
         let q = qs.parse(u.query)
@@ -206,11 +188,11 @@ describe('#oauth', function () {
       .query({
         response_type: 'code',
         client_id: 'demo',
-        redirect_uri: 'http://localhost:3000/cb',
+        redirect_uri: 'http://localhost:3000/auth/callback',
         state: 'xyz'
       })
       .expect(302)
-      .expect('Location', /^http:\/\/localhost:3000\/cb\?code=[^&]{20,}&state=xyz$/)
+      .expect('Location', /^http:\/\/localhost:3000\/auth\/callback\?code=[^&]{20,}&state=xyz$/)
     })
 
     it('should return invalid_client', function () {
@@ -234,11 +216,11 @@ describe('#oauth', function () {
       .query({
         response_type: 'code',
         client_id: 'demo',
-        redirect_uri: 'http://localhost:3000/cb',
+        redirect_uri: 'http://localhost:3000/auth/callback',
         state: 'xyz'
       })
       .expect(302)
-      .expect('Location', '/login?origin=%2Foauth%2Fauthorize%3Fresponse_type%3Dcode%26client_id%3Ddemo%26redirect_uri%3Dhttp%253A%252F%252Flocalhost%253A3000%252Fcb%26state%3Dxyz')
+      .expect('Location', '/login?origin=%2Foauth%2Fauthorize%3Fresponse_type%3Dcode%26client_id%3Ddemo%26redirect_uri%3Dhttp%253A%252F%252Flocalhost%253A3000%252Fauth%252Fcallback%26state%3Dxyz')
     })
 
     it('should redirect with error invalid_token', function () {
@@ -265,7 +247,7 @@ describe('#oauth', function () {
         .send({
           grant_type: 'authorization_code',
           code: authorizationCode,
-          redirect_uri: 'http://localhost:3000/cb'
+          redirect_uri: 'http://localhost:3000/auth/callback'
         })
         .expect(200)
         .expect((res) => {

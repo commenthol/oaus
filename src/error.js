@@ -17,7 +17,8 @@ module.exports = function (app) {
     debug.error({
       ip: req.ip,
       error: err.message || err.name,
-      status: err.status
+      status: err.status,
+      stack: err.stack
     })
 
     res.statusCode = err.status

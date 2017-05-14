@@ -1,3 +1,7 @@
+/**
+* TODO not yet working as intented
+*/
+
 const mongoose = require('mongoose')
 const {mongodb, users, clients, scopes} = require('./config')
 
