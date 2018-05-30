@@ -19,6 +19,3 @@ eslint --fix *.js
 2. Change the config in `createTables.js`
 3. Run `createTables.js` - make sure it passes, check the tables in the DB
 
-## Stored Procedures
-
-In `sql/procedures.sql` there are stored procedures which speed up querying the database. The calls are implemented in `model-procedures.js` and can be enabled using `config.storedProcedures: true`

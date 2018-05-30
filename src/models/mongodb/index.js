@@ -1,20 +1,24 @@
 const mongoose = require('mongoose')
-const debug = require('debug')('oaus__model-mongo')
-debug.error = require('debug')('oaus__model-mongo::error').bind(undefined, '%j')
+const log = require('debug-level').log('oaus:models:mongodb')
 
 mongoose.Promise = global.Promise
 
 /**
 * Connect to mongo database
 * @param {Object} config - configuration
-* @param {String} config.url - mongodb url
-* @param {String} config.secret - secret for signed tokens
+* @param {String} url - mongodb url
+* @param {Object} passwordHash - password hash fn
+* @param {Promise} passwordHash.compare - password hash compare fn
+* @param {Object} signedTokenFn - signed token functions
+* @param {Function} signedTokenFn.hmac - returns token <String>
+* @param {Promise} signedTokenFn.verify - verifies a token
+* @param {Promise} signedTokenFn.create - creates a token
 * @return {Object} db object
 */
-exports.connect = function connect (config) {
-  mongoose.connect(config.url, config, (err) => {
+exports.connect = function connect ({ url, passwordHash, signedTokenFn, ...config }) {
+  mongoose.connect(url, config, (err) => {
     if (err) {
-      debug.error({
+      log.error({
         error: err.message,
         stack: err.stack
       })
@@ -23,9 +27,9 @@ exports.connect = function connect (config) {
       }
       return
     }
-    debug('mongoose connected')
+    log.debug('connected')
   })
-  .catch(() => {})
+    .catch(() => {})
 
   var db = {
     OAuthAccessTokens: require('./OAuthAccessTokens'),
@@ -36,6 +40,6 @@ exports.connect = function connect (config) {
     OAuthUsers: require('./OAuthUsers')
   }
 
-  const model = require('./model')(db, config.secret)
+  const model = require('./model')({ db, passwordHash, signedTokenFn })
   return {db, model}
 }

@@ -1,17 +1,28 @@
 const LoginMw = require('./LoginMw')
-const Router = require('express').Router
+const {Router} = require('express')
 
 /**
-* router for login
-* @param {Object} config
-* @param {Object} config.oauth2mw - oauth2 middlewares
-* @param {String} config.csrfTokenSecret - csrf token secret
-* @param {String} [config.oauthPath='/oauth'] - default redirect uri to oauth2 service
-* @param {String} config.login.clientId - oauth2 clientId for login App
-* @param {String} config.login.clientSecret - oauth clientSecret
-* @param {Object} [config.login.successUri='/'] - default redirect uri after successful login
-* @return {Object} express router
-*/
+ * router for login
+ * Should be mounted on `paths.login`
+ *
+ * @param {Object} login
+ * @param {Object} login.clientId
+ * @param {Object} login.clientSecret
+ * @param {Object} oauth2 - @see node_modules / oauth2 - server / lib / server.js
+ * @param {Object} model - database model instance - @see src / models / index.js
+ * @param {Object} paths - mount paths
+ * @param {Object} paths.oauth
+ * @param {Object} paths.login
+ * @param {Object} paths.loginSuccess
+ * @param {Object} paths.logout
+ * @return {Object} express router
+ * @example
+ * const config = {login: {...}, oauth2: {...}, paths: {...}, database: {...}}
+ * const app = require('express')()
+ * const {login, models} = require('oaus')
+ * config.model = models(config.database) // attach db models
+ * app.use(login(config))
+ */
 module.exports = function (config) {
   const router = new Router()
   const mws = new LoginMw(config)

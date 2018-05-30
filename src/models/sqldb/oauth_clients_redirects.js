@@ -1,20 +1,19 @@
-/* jshint indent: 2 */
-
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_clients_redirects', {
     id: {
       type: DataTypes.BIGINT.UNSIGNED,
-      allowNull: false,
       primaryKey: true,
+      allowNull: false,
       autoIncrement: true
     },
     redirectUri: {
-      type: DataTypes.STRING(2000) + ' COLLATE utf8_bin',
+      type: DataTypes.STRING(2000) + ' COLLATE utf8mb4_bin',
       allowNull: true
     },
     oauthClientId: {
       type: DataTypes.BIGINT.UNSIGNED,
-      allowNull: true
+      primaryKey: true,
+      allowNull: false
       // references: {
       //   model: 'oauth_clients',
       //   key: 'id'
@@ -22,18 +21,16 @@ module.exports = function (sequelize, DataTypes) {
     },
     createdAt: {
       type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
+      allowNull: true
     },
     updatedAt: {
       type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+      allowNull: true
     }
   }, {
     tableName: 'oauth_clients_redirects',
-    charset: 'utf8',
-    collate: 'utf8_unicode_ci',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     timestamps: true
   })
 }

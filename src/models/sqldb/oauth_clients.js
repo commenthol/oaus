@@ -1,5 +1,3 @@
-/* jshint indent: 2 */
-
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_clients', {
     id: {
@@ -13,12 +11,13 @@ module.exports = function (sequelize, DataTypes) {
       allowNull: true
     },
     clientId: {
-      type: DataTypes.STRING(80) + ' COLLATE utf8_bin',
+      type: DataTypes.STRING(80) + ' COLLATE utf8mb4_bin',
       allowNull: true,
+      primaryKey: true,
       unique: true
     },
-    clientSecret: {
-      type: DataTypes.STRING(80) + ' COLLATE utf8_bin',
+    secret: {
+      type: DataTypes.STRING(255) + ' COLLATE utf8mb4_bin',
       allowNull: true
     },
     grants: {
@@ -37,6 +36,10 @@ module.exports = function (sequelize, DataTypes) {
       type: DataTypes.STRING(255),
       allowNull: true
     },
+    logoutURI: {
+      type: DataTypes.STRING(2000),
+      allowNull: true
+    },
     userId: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true
@@ -46,19 +49,17 @@ module.exports = function (sequelize, DataTypes) {
       // }
     },
     createdAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE, // + ' CURRENT_TIMESTAMP'
       allowNull: true
-      // defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
     },
     updatedAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE, // + ' CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
       allowNull: true
-      // defaultValue: sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     }
   }, {
     tableName: 'oauth_clients',
-    charset: 'utf8',
-    collate: 'utf8_unicode_ci',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     timestamps: true
   })
 }

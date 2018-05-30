@@ -1,20 +1,27 @@
+// require('mysql2') // required by sequelize
 const Sequelize = require('sequelize')
 const _merge = require('lodash.merge')
 
 /**
 * Connect to SQL database
+* @param {String} url - database url
+* @param {Object} passwordHash - password hash fn
+* @param {Promise} passwordHash.compare - password hash compare fn
+* @param {Object} signedTokenFn - signed token functions
+* @param {Function} signedTokenFn.hmac - returns token <String>
+* @param {Promise} signedTokenFn.verify - verifies a token
+* @param {Promise} signedTokenFn.create - creates a token
 * @param {Object} config - @see http://sequelize.readthedocs.io/en/latest/api/sequelize/
 *    or https://github.com/sequelize/sequelize/blob/master/docs/usage.md
-* @param {Boolean} [config.storedProcedures=false] - set to `true` to enable stored procedures; requires import of `sql/procedures.sql`
 * @return {Object} db object
 */
-exports.connect = function connect (config) {
+exports.connect = function connect ({ url, passwordHash, signedTokenFn, ...config }) {
   const _config = _merge(
     {
       define: {
-        charset: 'utf8',
+        charset: 'utf8mb4',
         dialectOptions: {
-          collate: 'utf8_unicode_ci'
+          collate: 'utf8mb4_bin'
         }
       },
       syncOnAssociation: true,
@@ -22,13 +29,8 @@ exports.connect = function connect (config) {
     },
     config
   )
-  const storedProcedures = _config.storedProcedures
-  delete _config.storedProcedures
 
-  const sequelize = new Sequelize(
-    _config.url,
-    _config
-  )
+  const sequelize = new Sequelize(url, _config)
 
   // table definitions
   const OAuthAccessTokens = sequelize.import('./oauth_access_tokens')
@@ -66,10 +68,7 @@ exports.connect = function connect (config) {
     OAuthUsers
   }
 
-  const model = require('./model')(db, config.secret)
-  if (storedProcedures) {
-    Object.assign(model, require('./model-procedures')(db, config.secret))
-  }
+  const model = require('./model')({ db, passwordHash, signedTokenFn })
 
   return {db, model}
 }

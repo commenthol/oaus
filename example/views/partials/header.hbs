@@ -1,0 +1,14 @@
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="/">
+        <strong>OAus</strong>
+      </a>
+    </div>
+    {{#if uri.joinURL}}
+    <div class="navbar-right">
+      <a class="btn btn-primary navbar-btn" href="{{uri.joinURL}}" role="button">Sign up</a>
+    </div>
+    {{/if}}
+  </div>
+</nav>

@@ -1,0 +1,19 @@
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="/">
+        <strong>OAus Client</strong>
+      </a>
+    </div>
+    <div class="navbar-right">
+      {{#if username}}
+        <p class="navbar-text">{{username}}</p>
+        <a class="btn btn-default navbar-btn" href="{{uri.logoutURL}}" role="button">Sign out</a>
+      {{else}}
+        <a class="btn btn-default navbar-btn" href="{{uri.joinURL}}" role="button">Sign up</a>
+        <span> or </span>
+        <a class="btn btn-primary navbar-btn" href="{{uri.loginURL}}" role="button">Sign in</a>
+      {{/if}}
+    </div>
+  </div>
+</nav>

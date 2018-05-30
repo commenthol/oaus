@@ -1,16 +1,15 @@
-/* jshint indent: 2 */
-
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_authorization_codes', {
     id: {
       type: DataTypes.BIGINT.UNSIGNED,
-      allowNull: false,
       primaryKey: true,
+      allowNull: false,
       autoIncrement: true
     },
     authorizationCode: {
-      type: DataTypes.STRING(255) + ' COLLATE utf8_bin',
-      allowNull: true,
+      type: DataTypes.STRING(255) + ' COLLATE utf8mb4_bin',
+      primaryKey: true,
+      allowNull: false,
       unique: true
     },
     expiresAt: {
@@ -19,7 +18,7 @@ module.exports = function (sequelize, DataTypes) {
       defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
     },
     redirectUri: {
-      type: DataTypes.STRING(2000) + ' COLLATE utf8_bin',
+      type: DataTypes.STRING(2000) + ' COLLATE utf8mb4_bin',
       allowNull: true
     },
     scope: {
@@ -44,8 +43,8 @@ module.exports = function (sequelize, DataTypes) {
     }
   }, {
     tableName: 'oauth_authorization_codes',
-    charset: 'utf8',
-    collate: 'utf8_unicode_ci',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     timestamps: false
   })
 }

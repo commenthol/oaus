@@ -1,9 +1,9 @@
 const http = require('http')
 const qs = require('querystring')
-const csrfToken = require('./csrfToken')
 const cookie = require('./cookie')
-const signedToken = require('./signedToken')
 const promisify = require('./promisify')
+
+const log = require('debug-level').log('oaus')
 
 const DELIMITER = ' '
 
@@ -22,19 +22,6 @@ function objToArray (obj) {
     .map((k) => ({name: k, value: obj[k]}))
 }
 
-function logRequest (req, res, next) {
-  let {method, url, headers, params, query, body, baseUrl, originalUrl} = req
-  console.log('logRequest', JSON.stringify({method, url, headers, params, query, body, baseUrl, originalUrl}, null, 2))
-  next()
-}
-
-function logResponse (req, res, next) {
-  let {method, url} = req
-  let {headers, body} = res
-  console.log('logResponse', JSON.stringify({method, url, headers, body}, null, 2))
-  next()
-}
-
 function trimUrl (url) {
   if (url !== '/') {
     url = url.replace(/\/+$/, '')
@@ -42,15 +29,18 @@ function trimUrl (url) {
   return url
 }
 
-function basicAuthHeader (client) {
-  const {clientId, clientSecret} = client
+/**
+ * @param {Object} client - `{clientId, clientSecret}`
+ * @return {String} base64 encoded Basic Auth Header String
+ */
+function basicAuthHeader ({ clientId, clientSecret }) {
   return 'Basic ' + (Buffer.from(`${clientId}:${clientSecret || ''}`)).toString('base64')
 }
 
 function httpError (status, name, message) {
   const err = new Error(message || name)
   err.name = name || http.STATUS_CODES[status]
-  err.status = status
+  err.statusCode = err.status = status
   return err
 }
 
@@ -62,19 +52,67 @@ function unwrapQuery (string) {
   return Buffer.from(string || '', 'base64').toString()
 }
 
+function logRequest (req, res, next) {
+  let {method, url, headers, params, query, body, baseUrl, originalUrl} = req
+  console.log('logRequest', JSON.stringify({method, url, headers, params, query, body, baseUrl, originalUrl}, null, 2)) // eslint-disable-line no-console
+  next()
+}
+
+function logResponse (req, res, next) {
+  let {method, url} = req
+  let {headers, body} = res
+  console.log('logResponse', JSON.stringify({method, url, headers, body}, null, 2)) // eslint-disable-line no-console
+  next()
+}
+
+function wrapError (err, o) {
+  const { name, message, status, stack, code } = err
+  return Object.assign({}, o, {
+    error: message || name,
+    code,
+    status,
+    stack
+  })
+}
+
+function logError (err, req, res, next) {
+  if (typeof err !== 'object') {
+    err = new Error(err)
+  }
+  log.error(wrapError(err, {ip: req.ip}))
+  next(err)
+}
+
+const isAjaxReq = (headers = {}) => (
+  /\/json$/.exec(headers.accept) ||
+  /\/json$/.exec(headers['content-type']) ||
+  headers['X-Requested-With'] === 'XMLHttpRequest'
+)
+
+const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
+
+const isSecure = (req) => !!(
+  req.headers['x-forwarded-proto'] === 'https' ||
+  req.protocol === 'https' ||
+  !isEnvDev
+)
+
 module.exports = {
-  csrfToken,
+  basicAuthHeader,
   cookie,
   fromArray,
-  toArray,
-  objToArray,
-  trimUrl,
-  basicAuthHeader,
   httpError,
+  isAjaxReq,
+  isEnvDev,
+  isSecure,
+  logError,
   logRequest,
   logResponse,
-  wrapQuery,
-  unwrapQuery,
+  objToArray,
   promisify,
-  signedToken
+  toArray,
+  trimUrl,
+  unwrapQuery,
+  wrapError,
+  wrapQuery
 }

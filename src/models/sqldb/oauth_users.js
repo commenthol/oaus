@@ -1,5 +1,3 @@
-/* jshint indent: 2 */
-
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_users', {
     id: {
@@ -10,15 +8,24 @@ module.exports = function (sequelize, DataTypes) {
     },
     username: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      primaryKey: true,
       unique: true
     },
     password: {
-      type: DataTypes.STRING(80),
+      type: DataTypes.STRING(255) + ' COLLATE utf8mb4_bin',
       allowNull: true
     },
     scope: {
       type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    remember: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true
+    },
+    logoutToken: {
+      type: DataTypes.STRING(255) + ' COLLATE utf8mb4_bin',
       allowNull: true
     },
     lastSignInAt: {
@@ -30,19 +37,17 @@ module.exports = function (sequelize, DataTypes) {
       allowNull: true
     },
     createdAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE, // + ' CURRENT_TIMESTAMP'
       allowNull: true
-      // defaultValue: sequelize.literal('CURRENT_TIMESTAMP')
     },
     updatedAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE, // + ' CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
       allowNull: true
-      // defaultValue: sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     }
   }, {
     tableName: 'oauth_users',
-    charset: 'utf8',
-    collate: 'utf8_unicode_ci',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     timestamps: true
   })
 }

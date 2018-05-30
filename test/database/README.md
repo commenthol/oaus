@@ -1,12 +1,33 @@
+# Testdata for SQL database
+
+1. Start docker container with mysql
+   ```
+   ./scripts/docker/mysql.sh
+   ```
+2. Access container
+   ```
+   ./scripts/docker/mysql.sh exec
+   ```
+3. Create a new database
+   ```sql
+   CREATE DATABASE `oauth2` COLLATE 'utf8mb4_bin';
+   SHOW DATABASES;
+   ```
+4. Insert test data with
+   ```
+   node test/database/mysql.js
+   ```
+
 # Testdata for Mongo-DB
 
-1. Start the Mongo-DB e.g. `./scripts/docker/mongo.sh`
-2. Connect to the DB and add a new database `oauth2`
+1. Start the Mongo-DB e.g.
    ```
-   docker exec -it mongo mongo
-   use oauth2
+   ./scripts/docker/mongo.sh
    ```
-3. Restore the test-set from `oauth2-test.mongo`
+2. Insert test data with
+   ```
+   node test/database/mongo.js
+   ```
 
 ## Restore
 
@@ -26,13 +47,5 @@ docker exec -it mongo bash
 mongodump -d oauth2 --archive=/data/db/oauth2-test.mongo --gzip
 exit
 
-cp scripts/docker/mongo/oauth2-test.mongo test/database
+cp $HOME/.dockervolumes/mongo/oauth2-test.mongo test/database
 ```
-
-# Testdata for SQL database
-
-1. Create a new database (e.g. `oauth2`)
-2. Change the config in `src/models/sqldb/createTables.js`
-3. Run `node src/models/sqldb/createTables.js` - make sure it passes, check the tables in the DB
-
-Insert test data with `oauth2-test.sql`.

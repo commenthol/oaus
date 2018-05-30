@@ -1,0 +1,71 @@
+@startuml
+
+package browser {
+}
+
+package client {
+}
+
+package models as package_models {
+  class models <<interface>> {
+  }
+
+  class mongodb {
+  }
+
+  class sqldb {
+  }
+
+  models <|-- mongodb
+  models <|-- sqldb
+}
+
+package login {
+  class LoginMw {
+    + createCsrf()
+    + verifyCsrf()
+    + refreshToken()
+  }
+}
+
+LoginMw --> models
+
+package logout {
+  class LogoutMw {
+    - _logoutRevokeTokens()
+    - _logoutClients()
+  }
+}
+
+LoginMw <|-- LogoutMw
+LogoutMw --> models
+
+package oauth {
+  class Oauth2Mw {
+    + authenticate
+    + authorize
+    + token
+  }
+}
+
+Oauth2Mw <|-- LoginMw
+Oauth2Mw --> models
+
+' package resource {
+'   class Resource {
+'     scope
+'   }
+' }
+
+' Resource --> models
+
+' package client {
+' }
+
+browser ..> Oauth2Mw : /oauth/token \n /oauth/authorize
+client ..> Oauth2Mw : /oauth/token \n /oauth/authorize
+
+browser ..> LoginMw : /login
+browser ..> LogoutMw : /login/logout
+
+@enduml

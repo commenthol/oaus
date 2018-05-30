@@ -1,0 +1,30 @@
+@startuml
+
+actor user
+participant browser
+participant client
+participant clientN
+participant oauth as oaus
+database db
+
+user -> browser : click on logout
+browser -> oaus : POST /oauth/authorize\n response_type=logout&client_id&redirect_uri \n cookie:access
+browser <-- oaus : 302 /login/logout\n ?response_type=logout&client_id&redirect_uri
+
+browser -> oaus : GET /login/logout\n ?response_type=logout&client_id&redirect_uri \n cookie:access
+oaus -> oaus : check for refresh cookie
+browser <-- oaus : 200 set-cookie:state state
+
+...
+
+user -> browser : confirm logout
+browser -> oaus : POST /login/logout\n response_type=logout&client_id&redirect_uri&state \n cookie:state,refresh
+oaus -> db : _logoutRevokeTokens() \n clients.logoutUri \n users.logoutToken
+oaus -> client : POST /:logoutUri \n logoutToken
+oaus -> clientN : POST /:logoutUri \n logoutToken
+browser <-- oaus : 302 /:redirect_uri clear-cookie:access,refresh
+
+browser -> client : GET /:redirect_uri
+browser <-- client
+
+@enduml

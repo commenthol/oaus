@@ -1,110 +1,130 @@
 /**
-* middleware functions for login
-*/
+ * middleware functions for login
+ */
 
-const bodyParser = require('body-parser')
-const cookieParser = require('cookie-parser')
 const url = require('url')
 const qs = require('querystring')
-const {
-  objToArray,
-  trimUrl,
-  httpError,
-  basicAuthHeader,
-  csrfToken,
-  cookie
-} = require('../utils')
+const bodyParser = require('body-parser')
+const cookieParser = require('cookie-parser')
+const signedToken = require('signed-token')
 const chain = require('connect-chain-if')
 const _get = require('lodash.get')
-const debug = require('debug')('oaus__login-mw')
-debug.error = require('debug')('oaus__login-mw::error').bind(undefined, '%j')
+const { Oauth2Mw } = require('../oauth')
 
-const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
+const {
+  basicAuthHeader,
+  cookie,
+  httpError,
+  isAjaxReq,
+  isSecure,
+  wrapError
+} = require('../utils')
 
-// alert messages
-const alerts = {
-  bad_csrf_token:
-    {strong: 'The CSRF token is invalid!', text: 'Please try to resubmit the form'},
-  invalid_grant:
-    {strong: 'Oops snap!', text: 'Wrong Email address or Password. Please resubmit.'},
-  session_expired:
-    {strong: 'Oops sorry', text: 'Your session has expired, please sign-in again.'},
-  server_error:
-    {strong: 'Oops sorry', text: 'Something went wrong.. Please try again.'}
+const log = require('debug-level').log('oaus:loginMw')
+
+/**
+ * Connect middleware functions for login
+ * @param {Object} login
+ * @param {Object} login.clientId
+ * @param {Object} login.clientSecret
+ * @param {Object} oauth2 - @see node_modules / oauth2 - server / lib / server.js
+ * @param {Object} model - database model instance - @see src / models / index.js
+ * @param {Object} paths - mount paths
+ * @param {Object} paths.oauth
+ * @param {Object} paths.login
+ * @param {Object} paths.loginSuccess
+ * @param {Object} paths.logout
+ */
+function LoginMw ({ login, oauth2, model, paths }) {
+  if (!login || typeof login !== 'object') throw new Error('login missing')
+  if (!login.clientId) throw new Error('needs login.clientId')
+  if (!login.clientSecret) throw new Error('needs login.clientSecret')
+  if (!login.csrfSecret) throw new Error('needs login.csrfSecret')
+
+  Oauth2Mw.call(this, { oauth2, model, paths })
+  Object.assign(this, {
+    login,
+    _csrfTokenFn: signedToken(login.csrfSecret)
+  })
+  Object.keys(LoginMw.prototype).forEach((p) => (this[p] = this[p].bind(this)))
 }
 
-class LoginMw {
-  /*
-  * Connect middleware functions for login
-  * @param {Object} config
-  * @param {Object} config.oauth2mw - oauth2 middlewares
-  * @param {String} config.csrfTokenSecret - csrf token secret
-  * @param {String} [config.oauthPath='/oauth'] - default redirect uri to oauth2 service
-  * @param {String} config.login.clientId - oauth2 clientId for login App
-  * @param {String} config.login.clientSecret - oauth clientSecret
-  * @param {Object} [config.login.successUri='/'] - default redirect uri after successful login
-  */
-  constructor (config) {
-    this.client = config.login || {}    // {clientId, clientSecret}
-    this.oauth2mw = config.oauth2mw     // {token}
-    this.csrfTokenFn = csrfToken(config.csrfTokenSecret)
-    this.oauthPath = config.oauthPath || '/oauth'
+Object.setPrototypeOf(LoginMw.prototype, Oauth2Mw.prototype)
 
-    // validation
-    if (!this.oauth2mw) throw new Error('login needs config.oauth2mw')
-    if (!this.csrfTokenFn) throw new Error('login needs config.csrfTokenFn')
-    if (!this.client.clientId) throw new Error('login needs config.login.clientId')
-    if (!this.client.clientSecret) throw new Error('login needs config.login.clientSecret')
-
-    ;[
-      'getChain',
-      'postChain',
-      'verifyCsrfToken',
-      'verifyBody',
-      'setAuth',
-      'setCookie',
-      'setLocals',
-      'refreshCookie',
-      'render',
-      'error'
-    ]
-    .forEach((p) => (this[p] = this[p].bind(this)))
-  }
-
-  /** get middleware chain */
+Object.assign(LoginMw.prototype, {
+  /**
+   * get middleware chain
+   */
   getChain () {
     return [
       cookieParser(),
-      this.refreshCookie,
+      this.createCsrf,
+      this.refreshCookieGrant,
+      this.refreshToken,
       this.render,
       this.error
     ]
-  }
+  },
 
-  /** post middleware chain */
+  /**
+   * post middleware chain
+   */
   postChain () {
+    const limit = '10kb' // 413 if limit exceeded
     return [
-      bodyParser.urlencoded({extended: false}),
-      this.verifyCsrfToken,
+      cookieParser(),
+      bodyParser.urlencoded({ extended: false, limit }),
+      bodyParser.json({ limit }),
+      this.createCsrf,
+      this.verifyCsrf,
       this.verifyBody,
+      this.setContentTypeForm,
       this.setAuth,
       this.setLocals,
-      this.oauth2mw.token,
-      this.oauth2mw.lastSignInAt,
-      this.setCookie,
+      this.token,
+      this.lastSignInAt,
+      this.setCookies,
       this.error
     ]
-  }
+  },
 
-  verifyCsrfToken (req, res, next) {
+  /**
+   * create csrf token + secret
+   */
+  createCsrf (req, res, next) {
+    let secret = _get(req, 'cookies.state')
+    if (!secret || !this._csrfTokenFn.verifySync(secret)) {
+      secret = this._csrfTokenFn.createSync()
+      cookie.set(res, 'state', secret, { // Set-Cookie state=`secret`
+        path: this.paths.login,
+        httpOnly: true,
+        secure: isSecure(req)
+      })
+    }
+    req.csrfToken = () => signedToken(secret).createSync()
+    next()
+  },
+
+  /**
+   * verify csrf token.
+   * If invalid error.name `bad_csrf_token` is thrown
+   */
+  verifyCsrf (req, res, next) {
     let err
-    const csrf = _get(req, 'body.csrf')
-    if (!this.csrfTokenFn.verify(csrf)) {
+    const secret = _get(req, 'cookies.state')
+    const csrf = _get(req, 'body.state')
+    if (!secret || !csrf ||
+      !this._csrfTokenFn.verifySync(secret) ||
+      !signedToken(secret).verifySync(csrf)
+    ) {
       err = httpError(400, 'bad_csrf_token')
     }
     next(err)
-  }
+  },
 
+  /**
+   * verify body and check if username, password is set
+   */
   verifyBody (req, res, next) {
     let err
     const {username, password} = req.body || {}
@@ -112,64 +132,116 @@ class LoginMw {
       err = httpError(400, 'invalid_grant')
     }
     next(err)
-  }
+  },
 
+  /**
+   * set correct content-type for ajax requests
+   */
+  setContentTypeForm (req, res, next) {
+    if (isAjaxReq(req.headers)) {
+      req.headers['content-type'] = 'application/x-www-form-urlencoded'
+      req.headers['X-Requested-With'] = 'XMLHttpRequest'
+    }
+    next()
+  },
+
+  /**
+   * set locals needed for setCookie
+   */
   setLocals (req, res, next) {
     // ensure you run TLS on your site in production
-    const isSecure = !!(req.headers['x-ssl'] || req.protocol === 'https' || !isEnvDev)
-    req.locals = Object.assign({isSecure}, req.locals)
+    const remember = (req.method === 'POST' && _get(req, 'body.remember') === 'on')
+    req.locals = Object.assign({remember}, req.locals)
     next()
-  }
+  },
 
+  /**
+   * set client authentication
+   */
   setAuth (req, res, next) {
-    req.headers.authorization = basicAuthHeader(this.client)
+    req.headers.authorization = basicAuthHeader(this.login)
     next()
-  }
+  },
 
-  setCookie (req, res, next) {
-    const {token, isSecure} = req.locals
+  /**
+   * Sets the cookies for further authentication redirects.
+   */
+  setCookies (req, res, next) {
+    const { token, remember } = req.locals
+    const _isSecure = isSecure(req)
 
-    debug('setCookie', token)
+    log.debug('setCookies', token)
     if (!token) {
       next(httpError(401, 'invalid_grant'))
       return
     }
 
-    const rememberMe = (_get(req, 'body.remember') === 'on')
-
     cookie.set(res, 'access', token.accessToken, {
-      path: this.oauthPath,
+      path: this.paths.oauth,
       expires: token.accessTokenExpiresAt,
       httpOnly: true,
-      secure: isSecure
+      secure: _isSecure
     })
     if (token.refreshToken) {
+      const _remember = _get(token, 'user.remember') || remember
+
       cookie.set(res, 'refresh', token.refreshToken, {
-        path: trimUrl(req.originalUrl || '/'),
-        expires: rememberMe ? token.refreshTokenExpiresAt : undefined,
+        path: this.paths.login,
+        expires: _remember ? token.refreshTokenExpiresAt : undefined,
         httpOnly: true,
-        secure: isSecure
+        secure: _isSecure
       })
     }
 
-    let redirectUrl = _get(this.config, 'login.successUri', '/')
+    let redirectUrl = this.paths.loginSuccess
     let origin = url.parse(unescape(_get(req, 'body.origin', '')))
     if (origin.pathname) {
       let query = Object.assign(qs.parse(origin.query), {_login: 1})
       origin.search = '?' + qs.stringify(query)
       redirectUrl = url.format(origin)
     }
-    // debug('setCookie redirectUrl', redirectUrl)
-    res.redirect(redirectUrl)
-  }
 
-  refreshCookie (req, res, next) { // GET chain
-    const {refresh} = req.cookies // needs `cookie-parser`
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+
+    res.redirect(redirectUrl)
+  },
+
+  /**
+   * deletes access, refresh cookie
+   */
+  deleteCookies (req, res, next) {
+    const { refresh } = req.cookies || {} // needs `cookie-parser`
+
+    cookie.set(res, 'access', '', {
+      path: this.paths.oauth,
+      maxAge: 0,
+      expires: new Date(0),
+      httpOnly: true
+    })
+
+    if (refresh) {
+      cookie.set(res, 'refresh', '', {
+        path: this.paths.login,
+        maxAge: 0,
+        expires: new Date(0),
+        httpOnly: true
+      })
+    }
+    next()
+  },
+
+  /**
+   * Prepares `grant_type=refresh_token` using token from refreshCookieGrant to obtain
+   * fresh `accessToken`
+   */
+  refreshCookieGrant (req, res, next) { // GET chain
+    const {refresh} = req.cookies || {} // needs `cookie-parser`
 
     if (refresh) {
       // try to issue next accessToken for user
       // construct a fake request to issue a password grant request
-      debug('refreshCookie', req.headers)
+      log.debug('refreshCookieGrant', req.headers)
       req.method = 'POST'
       req.headers['content-type'] = 'application/x-www-form-urlencoded'
       req.headers['content-length'] = 100 // fake length - will hopefully not get inspected by `type-is` module
@@ -179,14 +251,23 @@ class LoginMw {
         origin: _get(req, 'query.origin')
       }
       req.query = {}
+    }
+    next()
+  },
 
-      chain(
-        this.setAuth,
-        this.setLocals,
-        this.oauth2mw.token,
-        this.setCookie,
+  /**
+   * sets new access & refresh cookie if present refresh cookie is valid
+   */
+  refreshToken (req, res, next) {
+    const {grant_type, refresh_token} = req.body || {}
+    if (grant_type === 'refresh_token' && typeof refresh_token === 'string') {
+      chain( // TODO put to own function....
+        this.setAuth.bind(this),
+        this.setLocals.bind(this),
+        this.token.bind(this),
+        this.setCookies.bind(this),
         (err, req, res, next) => { // eslint-disable-line handle-callback-err
-          debug('refreshCookie', {
+          log.info('refreshToken', {
             ip: req.ip,
             error: err.message
           })
@@ -196,39 +277,51 @@ class LoginMw {
     } else {
       next()
     }
-  }
+  },
 
+  /**
+   * @return sets:
+   *   {Object} res.body.hidden - `{name: value}` - hidden input values need to be set in POST request
+   *   {String} res.body.error - `  bad_csrf_token|session_expired|
+   *     access_denied|server_error|unauthorized_client|invalid_client|invalid_token|
+   *     invalid_argument|unsupported_grant_type|unauthorized_request|invalid_request|
+   *     invalid_scope|invalid_grant|insufficient_scope|unsupported_response_type`
+   */
   error (err, req, res, next) {
-    debug.error({
-      ip: req.ip,
-      fn: 'error',
-      error: err.message,
-      status: err.status,
-      stack: err.stack
-    })
-
+    log.error(wrapError(err, { ip: req.ip, fn: 'error' }))
     res.status(err.status || 200)
-    res.locals = Object.assign({}, res.locals, {alert: alerts[err.name || 'server_error']})
-    this.render(req, res)
-  }
-
-  render (req, res) {
-    const {alert} = res.locals || {}
-    res.render('layout/login', {
-      title: 'Login',
-      hidden: this._hiddenLogin(req),
-      alert
-    })
-  }
-
-  _hiddenLogin (req) {
-    const hidden = {
-      grant_type: 'password',
-      csrf: this.csrfTokenFn.create(),
-      origin: _get(req, 'query.origin')
+    res.body = {
+      error: err.name || 'server_error',
+      hidden: _hiddenLogin(req)
     }
-    return objToArray(hidden)
+    next(err)
+  },
+
+  /**
+   * @return sets:
+   *   {Object} res.body.hidden - `{name: value}` needs to be rendered as hidden <input> forms
+   */
+  render (req, res, next) {
+    res.body = { hidden: _hiddenLogin(req) }
+    next()
   }
-}
+})
 
 module.exports = LoginMw
+LoginMw.getRefreshToken = Oauth2Mw.getRefreshToken
+
+/**
+ * set hidden form key-value pairs
+ * @private
+ */
+function _hiddenLogin (req) {
+  const grant_type = _get(req, 'body.grant_type', 'password')
+  const response_type = _get(req, 'body.response_type')
+  const state = req.csrfToken && req.csrfToken()
+  const origin = _get(req, 'query.origin')
+  if (response_type) {
+    return { response_type, state, origin }
+  } else {
+    return { grant_type, state, origin }
+  }
+}

@@ -1,21 +1,33 @@
 const Router = require('express').Router
 const bodyParser = require('body-parser')
+const Oauth2Mw = require('./Oauth2Mw')
 
 /**
-* @param {Object} config
-* @param {Object} config.oauth2mw
-*/
-module.exports = function (config) {
+ * Router for token and authorize
+ * @param {Object} oauth2 - oauth2 configuration
+ * @param {Object} model - model instance
+ * @param {Object} [paths] - mount paths
+ * @return express router
+ * @example
+ * const config = {oauth2: {...}, paths: {...}, database: {...}}
+ * const app = require('express')()
+ * const {oauth, models} = require('oaus')
+ * config.model = models(config.database) // attach db models
+ * app.use(config.paths.oauth, oauth(config))
+ */
+module.exports = function ({ oauth2, model, paths }) {
   const router = new Router()
-  const {oauth2mw} = config
+  const mws = new Oauth2Mw({ oauth2, model, paths })
+  const limit = '10kb' // 413 if limit exceeded
 
-  if (!oauth2mw) throw new Error('oauth needs config.oauth2mw')
+  router.use('/',
+    bodyParser.urlencoded({ extended: false, limit }),
+    bodyParser.json({ limit })
+  )
+  router.all('/token', mws.tokenChain())
+  router.get('/authorize', mws.authorizeChain())
 
-  router.use(bodyParser.json())
-  router.use(bodyParser.urlencoded({ extended: false }))
-
-  router.all('/token', oauth2mw.tokenChain())
-  router.get('/authorize', oauth2mw.authorizeChain())
+  router.authenticate = mws.authenticate.bind(mws) // export authenticate mw
 
   return router
 }

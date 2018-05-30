@@ -1,0 +1,38 @@
+@startuml
+
+actor user
+participant browser
+participant client
+participant oauth as oaus
+database db
+
+user --> browser : click on login
+browser -> oaus : GET /oauth/authorize \n ?response_code=code&client_id&redirect_uri&state
+oaus -> oaus : cookie access is missing
+browser <-- oaus : 302 /login?origin
+
+browser -> oaus : GET /login?origin
+browser <-- oaus : 200 set-cookie:state state
+
+...
+
+user --> browser : enter credentials
+browser -> oaus : POST /login\n grant_type=password&username&password&state&origin \n cookie:state
+oaus -> db
+browser <-- oaus: 302 /oauth/authorize \n  set-cookie:access,refresh
+
+browser -> oaus : GET /oauth/authorize \n ?response_code=code&client_id&redirect_uri&state \n  cookie:access
+oaus -> db
+browser <-- oaus: 302 /:redirect_uri?code
+browser -> client: /:redirect_uri?code
+client -> oaus: POST /oauth/token \n grant_type=authorization_code&code&redirect_uri \n auth
+oaus -> db
+client <-- oaus : access_token, expires_in, refresh_token, token_type
+
+client -> oaus : GET /resources/users
+client <-- oaus : logoutToken, username, userId, ...
+
+client -> client : create session
+browser <-- client : 200 /
+
+@enduml

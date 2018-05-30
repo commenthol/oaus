@@ -1,5 +1,3 @@
-/* jshint indent: 2 */
-
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_scopes', {
     id: {
@@ -28,8 +26,8 @@ module.exports = function (sequelize, DataTypes) {
     }
   }, {
     tableName: 'oauth_scopes',
-    charset: 'utf8',
-    collate: 'utf8_unicode_ci',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     timestamps: true
   })
 }

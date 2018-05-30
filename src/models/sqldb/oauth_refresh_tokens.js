@@ -1,15 +1,14 @@
-/* jshint indent: 2 */
-
 module.exports = function (sequelize, DataTypes) {
   return sequelize.define('oauth_refresh_tokens', {
     id: {
       type: DataTypes.BIGINT.UNSIGNED,
-      allowNull: false,
       primaryKey: true,
+      allowNull: false,
       autoIncrement: true
     },
     refreshToken: {
-      type: DataTypes.STRING(255) + ' COLLATE utf8_bin',
+      type: DataTypes.STRING(255) + ' COLLATE utf8mb4_bin',
+      primaryKey: true,
       allowNull: false,
       unique: true
     },
@@ -40,8 +39,8 @@ module.exports = function (sequelize, DataTypes) {
     }
   }, {
     tableName: 'oauth_refresh_tokens',
-    charset: 'utf8',
-    collate: 'utf8_unicode_ci',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     timestamps: false
   })
 }
