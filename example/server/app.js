@@ -2,63 +2,42 @@
 
 const express = require('express')
 const morgan = require('morgan')
+const log = require('debug')('test:app')
 const {
   get: _get,
-  pick: _pick,
-  merge: _merge
+  pick: _pick
 } = require('lodash')
 const {loginView, logoutView} = require('./src')
-const views = require('../views')
+const views = require('./views')
 const version = require('../../package.json').version
 const oaus = require('../..')
+const {
+  httpError
+} = oaus.utils
 
 module.exports = setup
 
-const defaultConfig = {
-  database: {
-    secret: 'keyboard cat', // secret to valiate tokens
-    connector: 'mysql',
-    url: 'mysql://root:dev@localhost/oauth2'
-    // storedProcedures: true,
-    // logging: false
-    // connector: 'mongodb',
-    // url: 'mongodb://localhost/oauth2'
-  },
-  csrfTokenSecret: 'keyboard cat',
-  oauth2: { // oauth2-server settings
-    accessTokenLifetime: 60, // 60 * 15, // 15 min
-    refreshTokenLifetime: 300 // 60 * 60 * 24 * 14  // 2 weeks.
-  },
-  login: {
-    clientId: 'login',
-    clientSecret: 'loginsecret'
-  }
-}
-
 function logger (req, res, next) { // TODO debug
-  console.log('>>>', req.method, req.url, req.originalUrl)
-  // console.log('<<<', res.statusCode, req.body)
+  log('>>>', req.method, req.url, req.headers, req.body)
+  res.on('finish', () => {
+    log('<<<', res.statusCode, res.body)
+  })
   next()
 }
 
-function setup (pConfig) {
+function setup (config) {
   const app = express()
-
-  const config = _merge({}, defaultConfig, pConfig)
-  const oauth2mw = new oaus.OAuth2Mw(config)
-  config.oauth2mw = oauth2mw
-
-  app.locals.version = version
-  app.set('trust proxy', 'loopback, linklocal, uniquelocal')
-  app.use(morgan('combined'))
+  const routers = oaus.routers(config)
 
   views(app) // set hbs views
 
-  app.use(logger) // TODO debug
+  app.locals.version = version
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal')
+  app.use(logger, morgan('combined'))
 
   // logout chain
-  app.use('/login/logout',
-    oaus.logout(config),
+  app.use(config.paths.logout,
+    routers.logout,
     (err, req, res, next) => {
       const redirectUri = _get(req, 'query.redirect_uri')
       if (redirectUri) {
@@ -70,17 +49,22 @@ function setup (pConfig) {
     logoutView.render,
     logoutView.error
   )
+
   // login chain
-  app.use('/login',
-    oaus.login(config),
+  app.use(config.paths.login,
+    routers.login,
     loginView.render,
     loginView.error
   )
+
   // authorization server
-  app.use('/oauth', oaus.oauth(config))
+  app.use(config.paths.oauth,
+    routers.oauth
+  )
+
   // resource server
   app.get('/resource/user',
-    oauth2mw.authenticate,
+    routers.authenticate,
     (req, res, next) => {
       console.log(req.locals.user)
       const body = _pick(req.locals.user, ['username', 'logoutToken'])
@@ -88,21 +72,23 @@ function setup (pConfig) {
       res.json(body)
     }
   )
+
   // general error handler
+  app.use((req, err, next) => {
+    next(httpError(404))
+  })
   oaus.error(app)
   app.use((_err, req, res, _next) => {
-    res.render('layout/error', res.body)
+    res.render('pages/error', res.body)
   })
 
   return app
 }
 
-function main (port) {
-  setup().listen(port, () => {
+if (module === require.main) {
+  const port = 4000
+  const config = require('./config')
+  setup(config).listen(port, () => {
     console.log(`OAuth2 Server started on :${port}`)
   })
-}
-
-if (module === require.main) {
-  main(4000)
 }

@@ -3,7 +3,7 @@ const http = require('http')
 const app = require('express')()
 const bodyParser = require('body-parser')
 const log = require('debug')('test:app')
-const oaus = require('../../src')
+const oaus = require('../..')
 
 function logger (req, res, next) { // TODO debug
   log('>>>', req.method, req.url, req.headers, req.body)
@@ -91,5 +91,6 @@ function setup (config) {
 module.exports = setup
 
 if (module === require.main) {
-  app.listen(3000)
+  const config = require('../config')
+  setup(config).listen(3000)
 }

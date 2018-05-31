@@ -1,0 +1,30 @@
+{
+  "name": "oaus-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
+  "main": "",
+  "scripts": {
+    "client": "nodemon client/app.js",
+    "server": "DEBUG=oaus* nodemon server/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ux:client": "nodemon -w client client/test/ux.js",
+    "ux:server": "nodemon -w server server/test/ux.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cookie-parser": "^1.4.3",
+    "debug": "^3.1.0",
+    "express": "^4.16.3",
+    "express-handlebars": "^3.0.0",
+    "express-session": "^1.15.6",
+    "lodash": "^4.17.10",
+    "morgan": "^1.9.0",
+    "passport": "^0.4.0",
+    "passport-oauth2": "^1.4.0",
+    "superagent": "^3.8.3"
+  }
+}

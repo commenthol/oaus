@@ -1,0 +1,45 @@
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: #333;
+}
+
+footer {
+  color: #ccc;
+  line-height: 3em;
+  padding: 0 1em;
+  text-align: right;
+}
+
+.content {
+  min-height: calc(100vh - 3em);
+}
+
+.alert {
+  padding: 1em;
+  margin-bottom: 1em;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+.alert--danger {
+  color: #a94442;
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+
+.jumbotron {
+  margin: 1em;
+  padding: 0em 1em;
+  background-color: #eee;
+  border-radius: 5px;
+}
+
+.link--primary {
+  text-decoration: none;
+  color: rgb(0, 120, 231);
+}

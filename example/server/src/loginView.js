@@ -2,7 +2,7 @@
 * Example Server - render middlewares
 */
 
-const _set = require('lodash.set')
+const _set = require('lodash').set
 const alerts = require('./alerts')
 
 /**
@@ -22,8 +22,7 @@ function render (req, res) {
   // hidden = [{name, value}, {name, value}, ...]
   const {hidden} = res.body || {}
   if (hidden) res.body.hidden = objToArray(hidden)
-  console.log('#login')
-  res.render('layout/login',
+  res.render('pages/login',
     Object.assign({title: 'Sign in to Oaus'}, res.body)
   )
 }

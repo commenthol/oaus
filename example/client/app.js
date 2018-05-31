@@ -9,7 +9,7 @@ const OAuth2Strategy = require('passport-oauth2')
 const _get = require('lodash').get
 const request = require('superagent')
 const {logRequest} = require('../../').utils
-const views = require('../views')
+const views = require('./views')
 
 module.exports = setup
 
@@ -123,8 +123,8 @@ function setup (app) {
   app.get('/',
     (req, res) => {
       console.log(req.session)
-      res.render('layout/client', {
-        title: 'OAus Client',
+      res.render('pages/home', {
+        title: 'Client',
         uri,
         username: _get(req, 'session.passport.user')
       })
@@ -134,12 +134,9 @@ function setup (app) {
   return app
 }
 
-function main (port) {
+if (module === require.main) {
+  const port = 3000
   setup().listen(port, () => {
     console.log(`OAuth2 Client started on :${port}`)
   })
-}
-
-if (module === require.main) {
-  main(3000)
 }

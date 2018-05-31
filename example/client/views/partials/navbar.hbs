@@ -1,0 +1,20 @@
+<nav class="pure-menu pure-menu-horizontal">
+  <a href="/" class="pure-menu-heading pure-menu-link">Client</a>
+  <ul class="pure-menu-list">
+    {{#if username}}
+    <li class="pure-menu-item">
+      {{username}}
+    </li>
+    <li class="pure-menu-item">
+      <a href="{{uri.logoutURL}}" class="pure-menu-link">Sign out</a>
+    </li>
+    {{else}}
+    <li class="pure-menu-item">
+      <a href="{{uri.joinURL}}" class="pure-menu-link">Sign up</a>
+    </li>
+    <li class="pure-menu-item">
+      <a href="{{uri.loginURL}}" class="pure-menu-link">Sign in</a>
+    </li>
+    {{/if}}
+  </ul>
+</nav>

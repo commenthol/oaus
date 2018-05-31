@@ -1,0 +1,28 @@
+{{#*inline "head-block"}}
+<style>
+h1 {
+  display: inline-block;
+  font-size: 7em;
+  background: rgb(0, 120, 231);
+  color: #fff;
+  border-radius: 40px;
+  padding: 12px 20px 0px;
+  vertical-align: bottom;
+}
+p {
+  font-size: 3em;
+}
+.error {
+  text-align: center;
+}
+</style>
+{{/inline}}
+
+{{#*inline "body"}}
+<div class="error">
+  <h1>{{status}}</h1>
+  <p><strong>Oops!</strong> {{name}}</p>
+</div>
+{{/inline}}
+
+{{>base}}

@@ -1,7 +1,8 @@
 /* eslint no-console:0 */
 
 const assert = require('assert')
-const _ = require('lodash')
+const _pick = require('lodash.pick')
+const _omit = require('lodash.omit')
 
 const {
   accessToken,
@@ -70,7 +71,7 @@ describe('#models', function () {
         const {clientId, clientSecret} = clients.demo
         return model.getClient(clientId, clientSecret)
           .then((client) => {
-            assert.deepEqual(Object.keys(_.omit(client, ['id', '_id', '__v'])).sort(), [
+            assert.deepEqual(Object.keys(_omit(client, ['id', '_id', '__v'])).sort(), [
               'accessTokenLifetime',
               'clientId',
               'createdAt',
@@ -258,13 +259,13 @@ describe('#models', function () {
         return model.getAccessToken(token.accessToken)
           .then((res) => {
             assert.deepEqual(
-              _.pick(res.client, ['clientId', 'scope']), {
+              _pick(res.client, ['clientId', 'scope']), {
                 clientId: 'demo',
                 scope: 'read write'
               }
             )
             assert.deepEqual(
-              _.pick(res.user, ['username', 'scope']), {
+              _pick(res.user, ['username', 'scope']), {
                 username: 'user@user',
                 scope: 'read'
               }
@@ -311,13 +312,13 @@ describe('#models', function () {
         return model.getRefreshToken(token.refreshToken)
           .then((res) => {
             assert.deepEqual(
-              _.pick(res.client, ['clientId', 'scope']), {
+              _pick(res.client, ['clientId', 'scope']), {
                 clientId: 'demo',
                 scope: 'read write'
               }
             )
             assert.deepEqual(
-              _.pick(res.user, ['username', 'scope']), {
+              _pick(res.user, ['username', 'scope']), {
                 username: 'user@user',
                 scope: 'read'
               }
@@ -395,13 +396,13 @@ describe('#models', function () {
         return model.getAuthorizationCode(code.authorizationCode)
           .then((res) => {
             assert.deepEqual(
-              _.pick(res.client, ['clientId', 'scope']), {
+              _pick(res.client, ['clientId', 'scope']), {
                 clientId: 'demo',
                 scope: 'read write'
               }
             )
             assert.deepEqual(
-              _.pick(res.user, ['username', 'scope']), {
+              _pick(res.user, ['username', 'scope']), {
                 username: 'user@user',
                 scope: 'read'
               }
@@ -412,8 +413,8 @@ describe('#models', function () {
             }
             assert.equal(res.expiresAt.toISOString(), code.expiresAt.toISOString())
             assert.equal(res.redirectUri, code.redirectUri)
-            assert.deepEqual(_.pick(res.user, ['username', 'scope']), { username: 'user@user', scope: 'read' })
-            assert.deepEqual(_.pick(res.client, ['clientId', 'scope']), { clientId: 'demo', scope: 'read write' })
+            assert.deepEqual(_pick(res.user, ['username', 'scope']), { username: 'user@user', scope: 'read' })
+            assert.deepEqual(_pick(res.client, ['clientId', 'scope']), { clientId: 'demo', scope: 'read write' })
           })
       })
 

@@ -1,6 +1,6 @@
 const {httpError} = require('./utils')
 
-const debug = require('debug-level').log('oaus:error')
+const log = require('debug-level').log('oaus:error')
 
 /**
 * final error handler (no rendering)
@@ -20,7 +20,7 @@ module.exports = function (app) {
     err = err || httpError(500)
 
     if (err.status !== 404) {
-      debug.error({
+      log.error({
         ip: req.ip,
         error: err.message || err.name,
         status: err.status,
