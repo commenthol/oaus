@@ -1,7 +1,7 @@
 /* eslint no-console:0 */
 
 const {collections} = require('./fixtures')
-const config = require('../config').mongo()
+const config = require('../config')
 const {models} = require('../..')
 
 function setup (model) {
@@ -33,6 +33,7 @@ function setup (model) {
 module.exports = setup
 
 if (require.main === module) {
+  config.mongo()
   const { model } = models(config.database)
   setup(model)().then(() => process.exit(0))
 }

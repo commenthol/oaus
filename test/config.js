@@ -25,7 +25,7 @@ const mongo = {
 const config = {
   database: {}, // database settings see `mysql` or `mongo` above
   oauth2: { // oauth2-server settings
-    alwaysIssueNewRefreshToken: false, // each refresh_token grant does not write new refresh_token
+    alwaysIssueNewRefreshToken: false, // each refresh_token grant does not write new refresh_token - for tests only!!!
     allowEmptyState: true
   },
   login: {
@@ -49,9 +49,11 @@ config.mongo = () => {
   config.database = mongo
   return config
 }
-config.mysql() // set mysql as default
+
 if (process.env.TEST === 'mongo') {
   config.mongo()
+} else {
+  config.mysql() // set mysql as default
 }
 
 module.exports = config

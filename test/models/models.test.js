@@ -18,24 +18,23 @@ const {
 // definition of test constants
 const {users, clients} = require('../database/fixtures')
 
-const config = require('../config').database
+const {database: config} = require('../config')
 const preMongo = require('../database/mongo')
 const preMysql = require('../database/mysql')
 
 const { models } = require('../..')
 
-const test = {
-  name: config.connector,
-  config
-}
-if (config.connector === 'mongodb') {
-  test.type = 'mongo'
-}
-
 describe('#models', function () {
+  const test = {
+    name: config.connector
+  }
+  if (config.connector === 'mongodb') {
+    test.type = 'mongo'
+  }
+
   describe(test.name, function () {
     let t
-    let model = models(test.config).model
+    let model = models(config).model
 
     before(() => {
       t = timer()
@@ -279,7 +278,7 @@ describe('#models', function () {
                 scope: 'read'
               }
             )
-            assert.equal(res.accessToken, test.config.signedTokenFn.hmac(token.accessToken))
+            assert.equal(res.accessToken, config.signedTokenFn.hmac(token.accessToken))
             if (test.type !== 'mongo') {
               token.accessTokenExpiresAt.setMilliseconds(0)
             }
@@ -416,7 +415,7 @@ describe('#models', function () {
                 scope: 'read'
               }
             )
-            assert.equal(res.authorizationCode, code.authorizationCode)
+            assert.equal(res.authorizationCode, config.signedTokenFn.hmac(code.authorizationCode))
             if (test.type !== 'mongo') {
               code.expiresAt.setMilliseconds(0)
             }

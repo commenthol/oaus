@@ -195,7 +195,7 @@ Object.assign(LoginMw.prototype, {
     }
 
     let redirectUrl = this.paths.loginSuccess
-    let origin = url.parse(unescape(_get(req, 'body.origin', '')))
+    let origin = url.parse(unescape(_get(req, 'query.origin', '')))
     if (origin.pathname) {
       let query = Object.assign(qs.parse(origin.query), {_login: 1})
       origin.search = '?' + qs.stringify(query)

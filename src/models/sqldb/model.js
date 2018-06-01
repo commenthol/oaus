@@ -105,7 +105,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
         return OAuthAuthorizationCodes
           .findOne({
             attributes: ['id', 'authorizationCode', 'expiresAt', 'redirectUri', 'scope'],
-            where: {authorizationCode: code},
+            where: {authorizationCode: signedTokenFn.hmac(code)},
             include: [{
               model: OAuthUsers,
               attributes: ['id', 'username', 'scope']
@@ -238,14 +238,15 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
 
   function saveAuthorizationCode (code, client, user) {
     log.debug('saveAuthorizationCode', code, client, user)
+    const {authorizationCode, expiresAt, redirectUri, scope} = code
     return OAuthAuthorizationCodes
       .create({
-        authorizationCode: code.authorizationCode,
-        expiresAt: code.expiresAt,
-        redirectUri: code.redirectUri,
         oauthClientId: client.id,
         userId: user.id,
-        scope: code.scope
+        authorizationCode: signedTokenFn.hmac(authorizationCode),
+        expiresAt,
+        redirectUri,
+        scope
       })
       .then(() => {
         code.code = code.authorizationCode
@@ -262,12 +263,11 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
 
   function revokeAuthorizationCode (code) {
     log.debug('revokeAuthorizationCode', code)
-    return OAuthAuthorizationCodes.findOne({
+    return OAuthAuthorizationCodes.destroy({
       where: {
-        authorizationCode: code.code
+        authorizationCode: signedTokenFn.hmac(code.authorizationCode)
       }
-    }).then((authCode) => {
-      if (authCode) authCode.destroy()
+    }).then(() => {
       // expire the code
       code.expiresAt = new Date(0)
       return code
@@ -278,12 +278,11 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
 
   function revokeToken (token) {
     log.debug('revokeToken', token)
-    return OAuthRefreshTokens.findOne({
+    return OAuthRefreshTokens.destroy({
       where: {
-        refreshToken: token.refreshToken
+        refreshToken: signedTokenFn.hmac(token.refreshToken)
       }
-    }).then((refreshToken) => {
-      if (refreshToken) refreshToken.destroy()
+    }).then(() => {
       // expire the token
       token.refreshTokenExpiresAt = new Date(0)
       return token

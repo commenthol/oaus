@@ -92,7 +92,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
       .then((code) => {
         if (!code) return null
         return OAuthAuthorizationCodes
-          .findOne({authorizationCode: code})
+          .findOne({authorizationCode: signedTokenFn.hmac(code)})
           .populate('userId')
           .populate('oauthClientId')
       })
@@ -199,14 +199,15 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
 
   function saveAuthorizationCode (code, client, user) {
     log.debug('saveAuthorizationCode', code, client, user)
+    const {authorizationCode, expiresAt, redirectUri, scope} = code
     return OAuthAuthorizationCodes
       .create({
-        authorizationCode: code.authorizationCode,
-        expiresAt: code.expiresAt,
-        redirectUri: code.redirectUri,
         oauthClientId: client._id,
         userId: user._id,
-        scope: code.scope
+        authorizationCode: signedTokenFn.hmac(authorizationCode),
+        expiresAt,
+        redirectUri,
+        scope
       })
       .then(() => {
         code.code = code.authorizationCode
@@ -224,7 +225,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
   function revokeAuthorizationCode (code) {
     log.debug('revokeAuthorizationCode', code)
     return OAuthAuthorizationCodes.deleteOne({
-      authorizationCode: code.code
+      authorizationCode: signedTokenFn.hmac(code.authorizationCode)
     }).then(() => {
       // expire the code
       code.expiresAt = new Date(0)
@@ -237,7 +238,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
   function revokeToken (token) {
     log.debug('revokeToken', token)
     return OAuthRefreshTokens.deleteOne({
-      refreshToken: token.refreshToken
+      refreshToken: signedTokenFn.hmac(token.refreshToken)
     }).then(() => {
       // expire the token
       token.refreshTokenExpiresAt = new Date(0)
