@@ -7,7 +7,7 @@ const qs = require('querystring')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const signedToken = require('signed-token')
-const chain = require('connect-chain-if')
+const { Router } = require('express')
 const _get = require('lodash.get')
 const { Oauth2Mw } = require('../oauth')
 
@@ -47,6 +47,7 @@ function LoginMw ({ login, oauth2, model, paths }) {
     _csrfTokenFn: signedToken(login.csrfSecret)
   })
   Object.keys(LoginMw.prototype).forEach((p) => (this[p] = this[p].bind(this)))
+  this._initRefeshTokenChain()
 }
 
 Object.setPrototypeOf(LoginMw.prototype, Oauth2Mw.prototype)
@@ -256,24 +257,33 @@ Object.assign(LoginMw.prototype, {
   },
 
   /**
+   * initialize verify refreshToken chain using express router
+   */
+  _initRefeshTokenChain () {
+    const router = new Router()
+    router.use(
+      this.setAuth,
+      this.setLocals,
+      this.token,
+      this.setCookies,
+      (err, req, res, next) => {
+        log.info('refreshToken', {
+          ip: req.ip,
+          error: err.message
+        })
+        next(httpError(200, 'session_expired'))
+      }
+    )
+    this._refeshTokenRouter = router
+  },
+
+  /**
    * sets new access & refresh cookie if present refresh cookie is valid
    */
   refreshToken (req, res, next) {
     const {grant_type, refresh_token} = req.body || {}
     if (grant_type === 'refresh_token' && typeof refresh_token === 'string') {
-      chain( // TODO put to own function....
-        this.setAuth.bind(this),
-        this.setLocals.bind(this),
-        this.token.bind(this),
-        this.setCookies.bind(this),
-        (err, req, res, next) => { // eslint-disable-line handle-callback-err
-          log.info('refreshToken', {
-            ip: req.ip,
-            error: err.message
-          })
-          next(httpError(200, 'session_expired'))
-        }
-      )(req, res, next)
+      this._refeshTokenRouter.handle(req, res, next)
     } else {
       next()
     }

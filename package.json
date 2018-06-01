@@ -16,7 +16,6 @@
     "@commenthol/oauth2-server": "^3.0.1-0",
     "asyncc": "^2.0.2",
     "body-parser": "^1.18.3",
-    "connect-chain-if": "^1.0.0",
     "cookie": "^0.3.1",
     "cookie-parser": "^1.4.3",
     "debug-level": "^0.3.0",
