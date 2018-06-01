@@ -240,6 +240,7 @@ Object.assign(LoginMw.prototype, {
     const {refresh} = req.cookies || {} // needs `cookie-parser`
 
     if (refresh) {
+      const origin = _get(req, 'query.origin')
       // try to issue next accessToken for user
       // construct a fake request to issue a password grant request
       log.debug('refreshCookieGrant', req.headers)
@@ -248,10 +249,9 @@ Object.assign(LoginMw.prototype, {
       req.headers['content-length'] = 100 // fake length - will hopefully not get inspected by `type-is` module
       req.body = {
         grant_type: 'refresh_token',
-        refresh_token: refresh,
-        origin: _get(req, 'query.origin')
+        refresh_token: refresh
       }
-      req.query = {}
+      req.query = {origin}
     }
     next()
   },
@@ -325,7 +325,7 @@ LoginMw.getRefreshToken = Oauth2Mw.getRefreshToken
  * @private
  */
 function _hiddenLogin (req) {
-  const grant_type = _get(req, 'body.grant_type', 'password')
+  const grant_type = 'password'
   const response_type = _get(req, 'body.response_type')
   const state = req.csrfToken && req.csrfToken()
   const origin = _get(req, 'query.origin')

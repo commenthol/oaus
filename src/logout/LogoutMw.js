@@ -90,6 +90,10 @@ Object.assign(LogoutMw.prototype, {
           req.locals = { user }
           next()
         })
+        .catch(() => {
+          // noop
+          next()
+        })
     } else {
       next(httpError(401, 'invalid_request'))
     }

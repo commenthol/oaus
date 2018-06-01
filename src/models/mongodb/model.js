@@ -278,7 +278,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
         const {user} = token || {}
         const userId = _get(user, '_id')
         if (!userId) {
-          throw new Error('no token or userId found')
+          return Promise.reject(new Error('no token or userId found'))
         }
         log.debug('revokeAllTokens', token)
         return Promise.all([
@@ -292,7 +292,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
       })
       .catch((err) => {
         log.error(Object.assign({fn: 'revokeAllTokens'}, err))
-        throw err
+        return Promise.reject(err)
       })
   }
 
