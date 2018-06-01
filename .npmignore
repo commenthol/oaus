@@ -1,8 +1,10 @@
 node_modules/
 coverage/
+test/
 tmp/
 *.log
 *.tgz
+.*
 
 # tmp dev files
 *.0
