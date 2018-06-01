@@ -92,8 +92,8 @@ const isAjaxReq = (headers = {}) => (
 const isEnvDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
 
 const isSecure = (req) => !!(
-  req.headers['x-forwarded-proto'] === 'https' ||
   req.protocol === 'https' ||
+  req.headers['x-forwarded-proto'] === 'https' ||
   !isEnvDev
 )
 
