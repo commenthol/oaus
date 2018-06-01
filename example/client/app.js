@@ -14,10 +14,10 @@ const views = require('./views')
 module.exports = setup
 
 const OAUTH2_SERVER = 'http://localhost:4000'
+const MY_SERVER = 'http://localhost:3000/'
 const uri = {
   loginURL: `/login`,
-  logoutURL: `${OAUTH2_SERVER}/oauth/authorize?response_type=logout&client_id=demo&redirect_uri=${escape('http://localhost:3000/')}`,
-  joinURL: `${OAUTH2_SERVER}/oauth/join`,
+  logoutURL: `${OAUTH2_SERVER}/oauth/authorize?response_type=logout&client_id=demo&redirect_uri=${escape(MY_SERVER)}`,
   authorizationURL: `${OAUTH2_SERVER}/oauth/authorize`,
   tokenURL: `${OAUTH2_SERVER}/oauth/token`
 }
@@ -30,7 +30,7 @@ const oauth2strategy = new OAuth2Strategy(
     tokenURL: uri.tokenURL,
     clientID: 'demo',
     clientSecret: 'demosecret',
-    callbackURL: 'http://localhost:3000/auth/callback',
+    callbackURL: `${MY_SERVER}/auth/callback`,
     state: true
   },
   function verify (accessToken, refreshToken, profile, cb) {
