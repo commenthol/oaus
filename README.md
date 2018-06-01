@@ -9,7 +9,22 @@
 ## Running behind proxy or load-balancer
 
 If running behind a proxy or load-balancer which terminates the SSL connection
-this component should add a `X-SSL` header to the request to flag cookies `secure`.
+this component should add a `x-forwarded-proto` header with value `https` to the
+request, to flag cookies `secure`.
+
+## Example implementation
+
+1.  Run docker container
+    ```bash
+    ./scripts/docker/mysql.sh
+    ```
+2.  Start Client & Server
+    ```bash
+    cd example
+    npm run run
+    ```
+3.  Open <http://localhost:3000> in browser.
+    Click on "sign-in" and sign-in as `user@user` with password `user`
 
 ## Links
 

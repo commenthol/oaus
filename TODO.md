@@ -16,8 +16,9 @@
       - redirect after logout
       - document
 - [x] CSRF protection
-- [ ] PROGRESS client for complete flow
-- [ ] test running with mongo
+- [x] client for complete flow
+- [x] test running with mongo
+- [ ] renew refreshToken for every new accessToken
 - [ ] scopes / model verifyScope, validateScope
 - [ ] review API
 - [ ] user registration

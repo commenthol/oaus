@@ -7,15 +7,6 @@ module.exports = {
   ],
   rules: {
     camelcase: 'off',
-    'no-console': 'warn',
-    'spaced-comment': [
-      'error',
-      'always',
-      {
-        markers: [
-          '>'
-        ]
-      }
-    ]
+    'no-console': 'warn'
   }
 }
