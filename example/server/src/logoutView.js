@@ -4,14 +4,7 @@
 
 const _set = require('lodash').set
 const alerts = require('./alerts')
-
-/**
-* @private
-*/
-const objToArray = (obj = {}) =>
-  Object.keys(obj)
-    .filter((k) => obj[k])
-    .map((k) => ({name: k, value: obj[k]}))
+const objToArray = require('./objToArray')
 
 /**
 * render the login page

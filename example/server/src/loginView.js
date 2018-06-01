@@ -4,14 +4,7 @@
 
 const _set = require('lodash').set
 const alerts = require('./alerts')
-
-/**
-* @private
-*/
-const objToArray = (obj = {}) =>
-  Object.keys(obj)
-    .filter((k) => obj[k])
-    .map((k) => ({name: k, value: obj[k]}))
+const objToArray = require('./objToArray')
 
 /**
 * render the login page
@@ -23,7 +16,7 @@ function render (req, res) {
   const {hidden} = res.body || {}
   if (hidden) res.body.hidden = objToArray(hidden)
   res.render('pages/login',
-    Object.assign({title: 'Sign in to Oaus'}, res.body)
+    Object.assign({title: 'Sign in'}, res.body)
   )
 }
 
