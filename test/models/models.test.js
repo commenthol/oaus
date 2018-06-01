@@ -87,8 +87,17 @@ describe('#models', function () {
             ])
             assert.strictEqual(client.name, 'demoName')
             assert.strictEqual(client.clientId, 'demo')
-            assert.deepEqual(client.grants, ['authorization_code', 'password', 'refresh_token', 'client_credentials'])
-            assert.deepEqual(client.redirectUris, ['http://localhost:3000/auth/callback', 'http://localhost:3000/callback1'])
+            assert.deepEqual(client.grants, [
+              'authorization_code',
+              'password',
+              'refresh_token',
+              'client_credentials'
+            ])
+            assert.deepEqual(client.redirectUris, [
+              'http://localhost:3000/auth/callback',
+              'http://localhost:3000/callback1',
+              'http://client.local:3000/auth/callback'
+            ])
           })
       })
 
@@ -151,7 +160,7 @@ describe('#models', function () {
                   accessTokenLifetime: 'Null',
                   scope: 'String',
                   grants: [ 'String', 'String', 'String', 'String' ],
-                  redirectUris: [ 'String', 'String' ],
+                  redirectUris: [ 'String', 'String', 'String' ],
                   createdAt: 'Date',
                   updatedAt: 'Date',
                   userId: {_bsontype: 'String', id: 'Uint8Array'}
@@ -186,7 +195,7 @@ describe('#models', function () {
                   createdAt: 'Date',
                   updatedAt: 'Date',
                   userId: 'Number',
-                  redirectUris: [ 'String', 'String' ],
+                  redirectUris: [ 'String', 'String', 'String' ],
                   logoutURI: 'String'
                 },
                 user: {

@@ -53,7 +53,8 @@ const collections = {
       redirectUris: [
         'http://localhost:3000/auth/callback',
         'http://localhost:3000/auth/callback',
-        'http://localhost:3000/callback1'
+        'http://localhost:3000/callback1',
+        'http://client.local:3000/auth/callback'
       ],
       refreshTokenLifetime: null,
       accessTokenLifetime: null,
