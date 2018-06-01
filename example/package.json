@@ -8,8 +8,9 @@
   "author": "",
   "main": "",
   "scripts": {
-    "client": "nodemon client/app.js",
-    "server": "DEBUG=oaus* nodemon server/app.js",
+    "run": "node run.js",
+    "client": "DEBUG=client node client/app.js",
+    "server": "DEBUG=oaus* node server/app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "ux:client": "nodemon -w client client/test/ux.js",
     "ux:server": "nodemon -w server server/test/ux.js"

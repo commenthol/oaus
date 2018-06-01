@@ -1,4 +1,4 @@
-/* eslint no-console:0 */
+/* eslint no-console: 0 */
 
 const express = require('express')
 const session = require('express-session')
@@ -8,13 +8,18 @@ const bodyParser = require('body-parser')
 const OAuth2Strategy = require('passport-oauth2')
 const _get = require('lodash').get
 const request = require('superagent')
-const {logRequest} = require('../../').utils
 const views = require('./views')
+const log = require('debug')('client')
 
 module.exports = setup
 
+/// set in `/etc/hosts` file
+/// 127.0.1.1 auth.local
+/// 127.0.0.1 client.local
+// const OAUTH2_SERVER = 'http://auth.local:4000'
+// const MY_SERVER = 'http://client.local:3000'
 const OAUTH2_SERVER = 'http://localhost:4000'
-const MY_SERVER = 'http://localhost:3000/'
+const MY_SERVER = 'http://localhost:3000'
 const uri = {
   loginURL: `/login`,
   logoutURL: `${OAUTH2_SERVER}/oauth/authorize?response_type=logout&client_id=demo&redirect_uri=${escape(MY_SERVER)}`,
@@ -22,6 +27,7 @@ const uri = {
   tokenURL: `${OAUTH2_SERVER}/oauth/token`
 }
 
+// user store - shift this to a database or redis cluster
 const userStore = {}
 
 const oauth2strategy = new OAuth2Strategy(
@@ -33,10 +39,10 @@ const oauth2strategy = new OAuth2Strategy(
     callbackURL: `${MY_SERVER}/auth/callback`,
     state: true
   },
-  function verify (accessToken, refreshToken, profile, cb) {
+  function verify (accessToken, refreshToken, profile, done) {
     const {username} = profile
     userStore[username] = profile
-    cb(null, profile)
+    done(null, profile)
   }
 )
 oauth2strategy.userProfile = function (accessToken, done) {
@@ -58,12 +64,18 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(function (username, done) {
   let err = null
   const user = userStore[username] || false
-  console.log('#deserializeUser', user)
+  log('deserializeUser %j', user)
   if (!user) {
     err = new Error('err_invalid_session')
   }
   done(err, user)
 })
+
+function logRequest (req, res, next) {
+  let {method, url, headers, params, query, body, baseUrl, originalUrl} = req
+  log('logRequest %j', {method, url, headers, params, query, body, baseUrl, originalUrl})
+  next()
+}
 
 function setup (app) {
   app = app || express()
@@ -104,7 +116,7 @@ function setup (app) {
 
   // session logout from server
   app.post('/auth/logout', bodyParser.json(), (req, res, next) => {
-    console.log(req.body)
+    log('logout %j', req.body)
     const {logoutToken} = req.body
 
     // find user by logoutToken to delete profile
@@ -122,7 +134,7 @@ function setup (app) {
 
   app.get('/',
     (req, res) => {
-      console.log(req.session)
+      log('session %j', req.session)
       res.render('pages/home', {
         title: 'Client',
         uri,
@@ -137,6 +149,6 @@ function setup (app) {
 if (module === require.main) {
   const port = 3000
   setup().listen(port, () => {
-    console.log(`OAuth2 Client started on :${port}`)
+    console.log(`OAuth2 Client started at ${MY_SERVER}`)
   })
 }
