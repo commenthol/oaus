@@ -2,13 +2,22 @@
 const http = require('http')
 const app = require('express')()
 const bodyParser = require('body-parser')
+const request = require('supertest')
 const log = require('debug')('test:app')
 const oaus = require('../..')
 
-function logger (req, res, next) { // TODO debug
-  log('>>>', req.method, req.url, req.headers, req.body)
+const client = {
+  id: 'demo',
+  secret: 'demosecret',
+  redirectUri: 'http://localhost:3000/auth/callback'
+}
+
+function logger (req, res, next) {
+  const {method, url, headers, body} = req
+  log('>>> %s %s %j', method, url, {headers, body})
   res.on('finish', () => {
-    log('<<<', res.statusCode, res.body)
+    const {statusCode, body} = res
+    log('<<< %s %s %s %j', statusCode, method, url, {body})
   })
   next()
 }
@@ -46,7 +55,7 @@ function setup (config) {
   app.get('/resource/user',
     routers.authenticate,
     (req, res, next) => {
-      log(req.locals.user) // TODO
+      log(req.locals.user)
       const { scope } = req.locals
       const { username, logoutToken } = req.locals.user
       const body = { username, logoutToken, scope }
@@ -62,6 +71,27 @@ function setup (config) {
     }
     store.count++
     res.end()
+  })
+
+  app.get('/auth/callback', (req, res) => {
+    const {code} = req.query
+    if (code) {
+      // authorize client with code
+      request(app)
+        .post('/oauth/token')
+        .auth(client.id, client.secret)
+        .type('form')
+        .send({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: client.redirectUri
+        })
+        .end(() => {
+          res.end()
+        })
+    } else {
+      res.end()
+    }
   })
 
   app.get('/auth/test/logoutToken', (req, res) => {

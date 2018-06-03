@@ -582,20 +582,19 @@ describe('#models', function () {
       })
 
       it('should revoke all tokens for an user', function () {
-        return model.revokeAllTokens(token.accessToken)
-          .then((res) => {
-            assert.ok(res.user)
-            assert.equal(res.user.username, 'user@user')
-            assert.ok(res.result)
-            assert.ok(res.result.length === 4)
+        return model.getUserByToken(token.accessToken)
+          .then(model.revokeAllTokens)
+          .then(result => {
+            assert.ok(result)
+            assert.ok(result.length === 4)
             if (test.type !== 'mongo') {
-              assert.ok(res.result[0] > 0)
+              assert.ok(result[0] > 0)
             }
           })
       })
 
       it('should throw using an unknown token', function () {
-        return model.revokeAllTokens(token.accessToken + 'xxx')
+        return model.getUserByToken(token.accessToken + 'xxx')
           .then((res) => {
             assert.ok(false, 'never reach here')
           })
@@ -605,14 +604,13 @@ describe('#models', function () {
       })
 
       it('should revoke all tokens for a user using refreshToken', function () {
-        return model.revokeAllTokens(token.accessToken, token.refreshToken)
-          .then((res) => {
-            assert.ok(res.user)
-            assert.equal(res.user.username, 'user@user')
-            assert.ok(res.result)
-            assert.ok(res.result.length === 4)
+        return model.getUserByToken(token.accessToken, token.refreshToken)
+          .then(model.revokeAllTokens)
+          .then(result => {
+            assert.ok(result)
+            assert.ok(result.length === 4)
             if (test.type !== 'mongo') {
-              assert.ok(res.result[0] > 0)
+              assert.ok(result[0] > 0)
             }
           })
       })

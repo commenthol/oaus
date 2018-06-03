@@ -64,8 +64,9 @@ Object.assign(LogoutMw.prototype, {
       bodyParser.json({ limit }),
       this.createCsrf.bind(this),
       this.verifyCsrf.bind(this),
-      this._logoutRevokeTokens.bind(this),
+      this._getUserByToken.bind(this),
       this._logoutClients.bind(this),
+      this._logoutRevokeTokens.bind(this),
       this.deleteCookies.bind(this),
       (req, res) => {
         // TODO use redirectUri from request - needs to be checked
@@ -78,20 +79,31 @@ Object.assign(LogoutMw.prototype, {
   },
 
   /**
+   * get user by token
+   * @private
+   */
+  _getUserByToken (req, res, next) {
+    const token = LoginMw.getRefreshToken(req)
+    if (token) {
+      this.model.getUserByToken(undefined, token)
+        .then(user => {
+          req.locals = Object.assign({user}, req.locals)
+          next()
+        })
+    } else {
+      next(httpError(401, 'invalid_request'))
+    }
+  },
+
+  /**
    * Revoke all tokens on logout
    * @private
    */
   _logoutRevokeTokens (req, res, next) {
-    const token = LoginMw.getRefreshToken(req)
-    if (token) {
-      this.model.revokeAllTokens(undefined, token)
-        .then((data) => {
-          const { user } = data
-          req.locals = { user }
-          next()
-        })
-        .catch(() => {
-          // noop
+    const { user } = req.locals
+    if (user) {
+      this.model.revokeAllTokens(user)
+        .then(() => {
           next()
         })
     } else {

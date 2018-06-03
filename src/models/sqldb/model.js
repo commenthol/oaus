@@ -263,11 +263,14 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
 
   function revokeAuthorizationCode (code) {
     log.debug('revokeAuthorizationCode', code)
+    // no need for .hmac the code as this comes after a getAuthorizationCode() call
+    const authorizationCode = code.authorizationCode
     return OAuthAuthorizationCodes.destroy({
       where: {
-        authorizationCode: signedTokenFn.hmac(code.authorizationCode)
+        authorizationCode
       }
-    }).then(() => {
+    }).then((result) => {
+      if (!result) log.debug('authorizationCode %s not found', code)
       // expire the code
       code.expiresAt = new Date(0)
       return code
@@ -304,39 +307,50 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
   /** === non oauth2-server methods === */
 
   /**
-  * destroy all tokens assigned to a user e.g. on logout from the server
-  * @param {String} accessToken
-  * @param {String} [refreshToken]
-  * @return {Promise} `{user, result}`
-  */
-  function revokeAllTokens (accessToken, refreshToken) {
-    let promise
-    if (refreshToken) {
-      promise = getRefreshToken(refreshToken)
-    } else {
-      promise = getAccessToken(accessToken)
-    }
+   * get user by token
+   * @param {String} accessToken
+   * @param {String} [refreshToken]
+   * @return {Promise} `user`
+   */
+  function getUserByToken (accessToken, refreshToken) {
+    const promise = refreshToken
+      ? getRefreshToken(refreshToken)
+      : getAccessToken(accessToken)
 
     return promise
-      .then((token) => {
+      .then(token => {
         const {user} = token || {}
         const userId = _get(user, 'id')
         if (!userId) {
           return Promise.reject(new Error('no token or userId found'))
+        } else {
+          return user
         }
-        log.debug('revokeAllTokens', token)
-        return Promise.all([
-          OAuthAuthorizationCodes.destroy({where: {userId: userId}}),
-          OAuthRefreshTokens.destroy({where: {userId: userId}}),
-          OAuthAccessTokens.destroy({where: {userId: userId}}),
-          lastSignOutAt({id: userId})
-        ]).then((result) => {
-          return {user, result}
-        })
       })
-      .catch((err) => {
+  }
+
+  /**
+   * destroy all tokens assigned to a user e.g. on logout from the server
+   * @param {Object} user
+   * @return {Promise} `{user, result}`
+   */
+  function revokeAllTokens (user) {
+    const userId = _get(user, 'id')
+    if (!userId) {
+      return Promise.reject(new Error('no token or userId found'))
+    }
+    log.debug('revokeAllTokens', userId)
+    return Promise.all([
+      OAuthAuthorizationCodes.destroy({where: {userId}}),
+      OAuthRefreshTokens.destroy({where: {userId}}),
+      OAuthAccessTokens.destroy({where: {userId}}),
+      lastSignOutAt({id: userId})
+    ])
+      .then(result => {
+        return result
+      })
+      .catch(err => {
         log.error(Object.assign({fn: 'revokeAllTokens'}, err))
-        return Promise.reject(err)
       })
   }
 
@@ -411,6 +425,7 @@ module.exports = function ({ db, passwordHash, signedTokenFn }) {
     validateScope,
     verifyScope,
     // ----
+    getUserByToken,
     revokeAllTokens,
     lastSignInAt,
     logoutClients

@@ -52,6 +52,20 @@ describe('#logout', function () {
     app.close(done)
   })
 
+  it('should authorize a client', function () {
+    return agent
+      .get(`${baseUrl}/oauth/authorize`)
+      .query({
+        response_type: 'code',
+        client_id: 'demo',
+        redirect_uri: redirectUri
+      })
+      .withCredentials()
+      .then(res => {
+        assert.equal(res.statusCode, 200)
+      })
+  })
+
   it('should get redirect to /login/logout', function () {
     return agent
       .get(`${baseUrl}/oauth/authorize`)
