@@ -7,7 +7,7 @@ module.exports = function (sequelize, DataTypes) {
       autoIncrement: true
     },
     accessToken: {
-      type: DataTypes.STRING(255) + ' COLLATE utf8mb4_bin',
+      type: DataTypes.STRING(191) + ' COLLATE utf8mb4_bin',
       primaryKey: true,
       allowNull: false,
       unique: true
